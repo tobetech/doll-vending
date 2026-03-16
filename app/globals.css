@@ -1,0 +1,13 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --disney-magenta: #E91E8C;
+  --disney-magenta-soft: #FCE4EC;
+  --disney-pink-pale: #FFE4F0;
+}
+
+body {
+  color: #1f2937;
+}

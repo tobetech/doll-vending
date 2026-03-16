@@ -1,0 +1,11 @@
+{
+  "name": "Doll Vending",
+  "short_name": "Doll Vending",
+  "description": "แอปซื้อจากตู้กดด้วย QR ประจำตัว",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#059669",
+  "scope": "/"
+}

@@ -1,0 +1,51 @@
+{
+  "info": {
+    "name": "Doll Vending - Webhook ตู้กด",
+    "description": "ทดสอบ API webhook เมื่อตู้ขายสินค้าทำรายการสำเร็จ\n\n1. แทนที่ {{baseUrl}} ด้วย http://localhost:3000 (dev) หรือ URL ของแอปที่ deploy แล้ว\n2. แทนที่ {{userId}} ด้วย UUID ของ user ที่กำลังอยู่หน้าสแกน QR (ดูได้จากหน้า /vending โหมด dev หรือ Supabase → Authentication → Users)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000" },
+    { "key": "userId", "value": "YOUR_USER_ID_UUID" }
+  ],
+  "item": [
+    {
+      "name": "Webhook - ตู้กดทำรายการสำเร็จ",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"machineId\": \"machine-01\",\n  \"productId\": \"item-001\",\n  \"productName\": \"สินค้าทดสอบ\",\n  \"amount\": 25\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/webhook/vending",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "webhook", "vending"]
+        },
+        "description": "ส่งเมื่อตู้ขายสินค้าทำรายการสำเร็จ แอปที่อยู่หน้าสแกน QR จะแสดง \"สำเร็จ\" แล้วกลับหน้าเมนู (ต้องเปิด Realtime ให้ตาราง vending_transactions ด้วย)"
+      }
+    },
+    {
+      "name": "Webhook - ขั้นต่ำ (userId + machineId อย่างเดียว)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"machineId\": \"machine-01\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/webhook/vending",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "webhook", "vending"]
+        },
+        "description": "Body ขั้นต่ำที่ API รับ: userId และ machineId อย่างเดียว"
+      }
+    }
+  ]
+}
