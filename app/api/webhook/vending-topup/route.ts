@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabase } from '@/lib/supabase-server'
+import {
+  isMissingSupabaseServerEnv,
+  nextMisconfiguredWebhook,
+} from '@/lib/supabase-env-error'
 
 type WebhookBody = {
   token: string
@@ -166,6 +170,7 @@ export async function POST(request: NextRequest) {
     })
   } catch (e) {
     console.error('vending-topup webhook error:', e)
+    if (isMissingSupabaseServerEnv(e)) return nextMisconfiguredWebhook()
     return NextResponse.json(
       { ok: false, error: 'Server error' },
       { status: 500 }

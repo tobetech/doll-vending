@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabase } from '@/lib/supabase-server'
+import {
+  isMissingSupabaseServerEnv,
+  nextMisconfiguredWebhook,
+} from '@/lib/supabase-env-error'
 
 /** ปัดทศนิยม 2 ตำแหน่ง (เงินบาท) */
 function roundMoney(n: number): number {
@@ -226,6 +230,7 @@ export async function POST(request: NextRequest) {
     })
   } catch (e) {
     console.error('Webhook vending error:', e)
+    if (isMissingSupabaseServerEnv(e)) return nextMisconfiguredWebhook()
     return NextResponse.json(
       { ok: false, error: 'Server error' },
       { status: 500 }

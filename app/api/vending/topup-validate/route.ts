@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabase } from '@/lib/supabase-server'
+import {
+  isMissingSupabaseServerEnv,
+  nextMisconfiguredValidate,
+} from '@/lib/supabase-env-error'
 
 /**
  * ตู้เติมเงิน: ส่ง token จาก QR เพื่อยืนยันและล็อก (pending → locked)
@@ -56,6 +60,7 @@ export async function POST(request: NextRequest) {
     })
   } catch (e) {
     console.error('topup-validate error:', e)
+    if (isMissingSupabaseServerEnv(e)) return nextMisconfiguredValidate()
     return NextResponse.json(
       { success: false, error: 'Server error' },
       { status: 500 }

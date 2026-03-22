@@ -54,6 +54,10 @@ npm run dev
 
 ถ้าไม่ใส่ `NEXT_PUBLIC_*` ตอน build เคย error `supabaseUrl is required` — โค้ดล่าสุดใช้ placeholder ให้ build ผ่านได้ แต่**แอปจะใช้งาน Supabase ไม่ได้จนกว่าจะใส่ค่าจริงแล้ว build ใหม่**
 
+**ทดสอบ Postman หลัง deploy:** ใช้ **POST** + **Body → raw → JSON** + Header `Content-Type: application/json`  
+- Webhook: `https://<โดเมน>/api/webhook/vending`  
+- ถ้าได้ **503** และข้อความ `server_misconfigured` = ยังไม่ได้ตั้ง **`SUPABASE_SERVICE_ROLE_KEY`** (หรือ URL) บน Vercel สำหรับ environment นั้น → ใส่แล้ว **Redeploy**
+
 ## Dynamic QR (ความปลอดภัย)
 
 - QR ไม่ใส่ `userId` โดยตรง แต่ใส่ **token** ที่สร้างใหม่ทุก 90 วินาที

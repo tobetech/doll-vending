@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createServerSupabase } from '@/lib/supabase-server'
+import {
+  isMissingSupabaseServerEnv,
+  nextMisconfiguredSimple,
+} from '@/lib/supabase-env-error'
 
 const TOKEN_VALID_MINUTES = 3
 
@@ -91,6 +95,7 @@ export async function POST(request: NextRequest) {
     })
   } catch (e) {
     console.error('qr-token error:', e)
+    if (isMissingSupabaseServerEnv(e)) return nextMisconfiguredSimple()
     return NextResponse.json({ error: 'Server error' }, { status: 500 })
   }
 }

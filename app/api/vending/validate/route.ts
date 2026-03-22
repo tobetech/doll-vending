@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabase } from '@/lib/supabase-server'
+import {
+  isMissingSupabaseServerEnv,
+  nextMisconfiguredValidate,
+} from '@/lib/supabase-env-error'
 
 /**
  * ตู้กดเรียกพร้อม token (จาก Dynamic QR) หรือ userId (แบบเก่า)
@@ -68,6 +72,7 @@ export async function POST(request: NextRequest) {
     })
   } catch (e) {
     console.error('Vending validate error:', e)
+    if (isMissingSupabaseServerEnv(e)) return nextMisconfiguredValidate()
     return NextResponse.json(
       { success: false, error: 'Server error' },
       { status: 500 }
