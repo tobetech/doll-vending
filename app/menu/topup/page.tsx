@@ -11,7 +11,7 @@ import DisneyBackground from '@/app/components/DisneyBackground'
 import {
   APP_QR_SIZE,
   APP_QR_ERROR_LEVEL,
-  APP_QR_FOREGROUND,
+  APP_QR_COLOR,
   APP_QR_BACKGROUND,
 } from '@/lib/qr-display'
 
@@ -251,7 +251,7 @@ export default function TopUpPage() {
                     margin={6}
                     padding={6}
                     variant={{ eyes: 'standard', body: 'dots' }}
-                    color={APP_QR_FOREGROUND}
+                    color={APP_QR_COLOR}
                     bgColor={APP_QR_BACKGROUND}
                   />
                 </div>

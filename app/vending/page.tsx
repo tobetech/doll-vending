@@ -11,8 +11,9 @@ import DisneyBackground from '@/app/components/DisneyBackground'
 import {
   APP_QR_SIZE,
   APP_QR_ERROR_LEVEL,
-  APP_QR_FOREGROUND,
+  APP_QR_COLOR,
   APP_QR_BACKGROUND,
+  APP_QR_BODY_COLOR,
 } from '@/lib/qr-display'
 
 const API_BASE = typeof window !== 'undefined' ? window.location.origin : ''
@@ -402,7 +403,7 @@ export default function VendingScanPage() {
                     margin={6}
                     padding={6}
                     variant={{ eyes: 'standard', body: 'dots' }}
-                    color={APP_QR_FOREGROUND}
+                    color={APP_QR_COLOR}
                     bgColor={APP_QR_BACKGROUND}
                   />
                 </div>
@@ -411,7 +412,10 @@ export default function VendingScanPage() {
                   aria-hidden
                 >
                   <div className="bg-white border-2 border-black px-3 py-2 shadow-sm">
-                    <span className="text-xs sm:text-sm font-bold text-[#b71c1c] tracking-tight uppercase whitespace-nowrap">
+                    <span
+                      className="text-xs sm:text-sm font-bold tracking-tight uppercase whitespace-nowrap"
+                      style={{ color: APP_QR_BODY_COLOR }}
+                    >
                       Doll-Vending
                     </span>
                   </div>
