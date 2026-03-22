@@ -14,6 +14,7 @@ import {
   APP_QR_COLOR,
   APP_QR_BACKGROUND,
 } from '@/lib/qr-display'
+import { useWallClockCountdown } from '@/lib/use-wall-clock-countdown'
 
 const API_BASE = typeof window !== 'undefined' ? window.location.origin : ''
 const COUNTDOWN_SECONDS = 120 // 2 นาที (สอดคล้องกับ token ฝั่ง API)
@@ -28,9 +29,7 @@ export default function TopUpPage() {
   const [expiresAt, setExpiresAt] = useState<string | null>(null)
   const [tokenLoading, setTokenLoading] = useState(false)
   const [tokenError, setTokenError] = useState<string | null>(null)
-  const [countdownSeconds, setCountdownSeconds] = useState<number | null>(null)
   const [success, setSuccess] = useState<{ amount: number } | null>(null)
-  const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const scanStartedAtRef = useRef<number | null>(null)
 
   const fetchTopupToken = useCallback(async () => {
@@ -68,6 +67,16 @@ export default function TopUpPage() {
     }
   }, [])
 
+  const onCountdownEnd = useCallback(() => {
+    setTimeout(() => router.replace('/menu'), COUNTDOWN_REDIRECT_AFTER_MS)
+  }, [router])
+
+  const countdownSeconds = useWallClockCountdown(
+    Boolean(topupToken) && success === null,
+    COUNTDOWN_SECONDS,
+    onCountdownEnd
+  )
+
   useEffect(() => {
     getSessionWithTimeout()
       .then(({ session }) => {
@@ -97,26 +106,6 @@ export default function TopUpPage() {
     if (!topupToken) scanStartedAtRef.current = null
   }, [topupToken])
 
-  useEffect(() => {
-    if (!topupToken || success !== null) return
-    setCountdownSeconds(COUNTDOWN_SECONDS)
-    let left = COUNTDOWN_SECONDS
-    const tick = () => {
-      left -= 1
-      if (left <= 0) {
-        if (countdownRef.current) clearInterval(countdownRef.current)
-        setCountdownSeconds(0)
-        setTimeout(() => router.replace('/menu'), COUNTDOWN_REDIRECT_AFTER_MS)
-        return
-      }
-      setCountdownSeconds(left)
-    }
-    countdownRef.current = setInterval(tick, 1000)
-    return () => {
-      if (countdownRef.current) clearInterval(countdownRef.current)
-    }
-  }, [topupToken, router, success])
-
   // Realtime: token เปลี่ยนเป็น completed
   useEffect(() => {
     if (!user?.id || !topupToken || success !== null) return
@@ -135,7 +124,6 @@ export default function TopUpPage() {
           if (row?.token === topupToken && row?.status === 'completed') {
             const amt = row.amount != null ? Number(row.amount) : 0
             setSuccess({ amount: amt })
-            if (countdownRef.current) clearInterval(countdownRef.current)
             setTimeout(() => router.replace('/menu'), SUCCESS_SHOW_MS)
           }
         }
@@ -159,7 +147,6 @@ export default function TopUpPage() {
       if (data?.status === 'completed') {
         const amt = data.amount != null ? Number(data.amount) : 0
         setSuccess({ amount: amt })
-        if (countdownRef.current) clearInterval(countdownRef.current)
         setTimeout(() => router.replace('/menu'), SUCCESS_SHOW_MS)
       }
     }

@@ -15,6 +15,7 @@ import {
   APP_QR_BACKGROUND,
   APP_QR_BODY_COLOR,
 } from '@/lib/qr-display'
+import { useWallClockCountdown } from '@/lib/use-wall-clock-countdown'
 
 const API_BASE = typeof window !== 'undefined' ? window.location.origin : ''
 const COUNTDOWN_SECONDS = 90 // 1:30 นาที
@@ -29,7 +30,6 @@ export default function VendingScanPage() {
   const [qrExpiresAt, setQrExpiresAt] = useState<string | null>(null)
   const [qrTokenLoading, setQrTokenLoading] = useState(false)
   const [qrError, setQrError] = useState<string | null>(null)
-  const [countdownSeconds, setCountdownSeconds] = useState<number | null>(null)
   const [webhookResult, setWebhookResult] = useState<'success' | 'failed' | null>(null)
   const [successSummary, setSuccessSummary] = useState<{
     amount: number
@@ -40,11 +40,20 @@ export default function VendingScanPage() {
   const [testWebhookLoading, setTestWebhookLoading] = useState(false)
   const [testWebhookError, setTestWebhookError] = useState<string | null>(null)
   const [creditOk, setCreditOk] = useState<boolean | null>(null)
-  const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const scanStartedAtRef = useRef<number | null>(null)
   const redirectingRef = useRef(false)
 
   const isDev = typeof window !== 'undefined' && process.env.NODE_ENV === 'development'
+
+  const onCountdownEnd = useCallback(() => {
+    setTimeout(() => router.replace('/menu'), COUNTDOWN_REDIRECT_AFTER_MS)
+  }, [router])
+
+  const countdownSeconds = useWallClockCountdown(
+    Boolean(qrToken) && webhookResult === null,
+    COUNTDOWN_SECONDS,
+    onCountdownEnd
+  )
 
   const handleTestWebhookSuccess = async () => {
     if (!user?.id) return
@@ -63,8 +72,7 @@ export default function VendingScanPage() {
       })
       const json = await res.json().catch(() => ({}))
       if (res.ok) {
-        // จำลองผลสำเร็จทันที (ไม่ต้องรอ Realtime) — หยุดนับถอยหลัง แล้วแสดงป๊อปอัปและกลับเมนู
-        if (countdownRef.current) clearInterval(countdownRef.current)
+        // จำลองผลสำเร็จทันที (ไม่ต้องรอ Realtime) — webhookResult ทำให้ countdown หยุด
         const nc =
           json.newCredit != null && Number.isFinite(Number(json.newCredit))
             ? Number(json.newCredit)
@@ -193,27 +201,6 @@ export default function VendingScanPage() {
     if (!qrToken) scanStartedAtRef.current = null
   }, [qrToken])
 
-  // นับถอยหลัง 1:30 นาที — ถึง 0 แล้วกลับหน้าเมนูหลัก
-  useEffect(() => {
-    if (!qrToken || webhookResult !== null) return
-    setCountdownSeconds(COUNTDOWN_SECONDS)
-    let left = COUNTDOWN_SECONDS
-    const tick = () => {
-      left -= 1
-      if (left <= 0) {
-        if (countdownRef.current) clearInterval(countdownRef.current)
-        setCountdownSeconds(0)
-        setTimeout(() => router.replace('/menu'), COUNTDOWN_REDIRECT_AFTER_MS)
-        return
-      }
-      setCountdownSeconds(left)
-    }
-    countdownRef.current = setInterval(tick, 1000)
-    return () => {
-      if (countdownRef.current) clearInterval(countdownRef.current)
-    }
-  }, [qrToken, router, webhookResult])
-
   // รับ webhook (realtime) → แสดงสำเร็จ/ล้มเหลว → กลับเมนู
   useEffect(() => {
     if (!user?.id || webhookResult !== null) return
@@ -248,7 +235,6 @@ export default function VendingScanPage() {
             })
           }
           setWebhookResult(status)
-          if (countdownRef.current) clearInterval(countdownRef.current)
           setTimeout(() => router.replace('/menu'), WEBHOOK_RESULT_SHOW_MS)
         }
       )
@@ -291,7 +277,6 @@ export default function VendingScanPage() {
           })
         }
         setWebhookResult(status)
-        if (countdownRef.current) clearInterval(countdownRef.current)
         setTimeout(() => router.replace('/menu'), WEBHOOK_RESULT_SHOW_MS)
       }
     }
