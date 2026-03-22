@@ -3,13 +3,14 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { FiMail, FiLock, FiArrowRight } from 'react-icons/fi'
+import { FiMail, FiLock, FiArrowRight, FiUser } from 'react-icons/fi'
 import DisneyBackground from '@/app/components/DisneyBackground'
 
 export default function LoginPage() {
   const router = useRouter()
   const [mode, setMode] = useState<'signin' | 'signup'>('signin')
   const [email, setEmail] = useState('')
+  const [userName, setUserName] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -18,31 +19,64 @@ export default function LoginPage() {
   const handleSubmit = async () => {
     setError('')
     setLoading(true)
-    if (mode === 'signup' && password !== confirmPassword) {
-      setError('รหัสผ่านไม่ตรงกัน')
-      setLoading(false)
-      return
+    if (mode === 'signup') {
+      if (!userName.trim()) {
+        setError('กรุณากรอกชื่อ')
+        setLoading(false)
+        return
+      }
+      if (password !== confirmPassword) {
+        setError('รหัสผ่านไม่ตรงกัน')
+        setLoading(false)
+        return
+      }
     }
     if (mode === 'signin') {
-      const { error } = await supabase.auth.signInWithPassword({ email, password })
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
       if (error) {
         setError(error.message)
-      } else {
+      } else if (data.user) {
         router.push('/menu')
+      } else {
+        setError('เข้าสู่ระบบไม่สำเร็จ กรุณาลองอีกครั้ง')
       }
     } else {
-      const { data, error } = await supabase.auth.signUp({ email, password })
+      const trimmedName = userName.trim()
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: trimmedName,
+          },
+        },
+      })
       if (error) {
         setError(error.message)
       } else {
         if (data?.user) {
-          await supabase
-            .from('vending_member')
-            .upsert(
-              { id: data.user.id, email: data.user.email ?? email },
-              { onConflict: 'id' }
+          const { error: memErr } = await supabase.from('vending_member').upsert(
+            {
+              id: data.user.id,
+              email: data.user.email ?? email,
+              user_name: trimmedName,
+            },
+            { onConflict: 'id' }
+          )
+          if (memErr) {
+            setError(
+              memErr.message.includes('user_name')
+                ? 'ฐานข้อมูลยังไม่มีคอลัมน์ user_name — รัน supabase/vending_member_user_profile.sql'
+                : memErr.message
             )
+            setLoading(false)
+            return
+          }
         }
+        setUserName('')
         setMode('signin')
       }
     }
@@ -69,6 +103,22 @@ export default function LoginPage() {
         <p className="text-center text-gray-600 mb-6">
           กรุณาเข้าสู่ระบบเพื่อซื้อจากตู้กด
         </p>
+        {mode === 'signup' && (
+          <div className="mb-4">
+            <label className="text-sm font-medium text-gray-700">ชื่อ</label>
+            <div className="flex items-center mt-1 bg-bill-pale/80 border border-bill-border rounded-card px-3">
+              <FiUser className="text-bill-primary/70 shrink-0" />
+              <input
+                type="text"
+                className="w-full bg-transparent px-2 py-3 outline-none"
+                value={userName}
+                onChange={(e) => setUserName(e.target.value)}
+                placeholder="ชื่อที่แสดงในแอป"
+                autoComplete="name"
+              />
+            </div>
+          </div>
+        )}
         <div className="mb-4">
           <label className="text-sm font-medium text-gray-700">อีเมล</label>
           <div className="flex items-center mt-1 bg-bill-pale/80 border border-bill-border rounded-card px-3">
@@ -118,7 +168,12 @@ export default function LoginPage() {
           {loading ? 'กำลังดำเนินการ...' : mode === 'signin' ? 'เข้าสู่ระบบ' : 'สมัครสมาชิก'}
         </button>
         <button
-          onClick={() => setMode(mode === 'signin' ? 'signup' : 'signin')}
+          type="button"
+          onClick={() => {
+            setError('')
+            if (mode === 'signup') setUserName('')
+            setMode(mode === 'signin' ? 'signup' : 'signin')
+          }}
           className="w-full text-center text-sm text-bill-blue font-semibold mt-4"
         >
           {mode === 'signin' ? 'ยังไม่มีบัญชี? สมัครสมาชิก' : 'มีบัญชีแล้ว? เข้าสู่ระบบ'}

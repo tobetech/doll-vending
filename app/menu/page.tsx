@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import type { Session } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 import { getSessionWithTimeout } from '@/lib/get-session-with-timeout'
 import {
@@ -27,37 +28,74 @@ export default function MenuPage() {
   const [showInsufficientPopup, setShowInsufficientPopup] = useState(false)
   const [vendingCheckLoading, setVendingCheckLoading] = useState(false)
 
+  /** กัน fetch/realtime ของ user คนก่อนยังไม่เสร็จแล้วมาทับหลังล็อกอินคนใหม่ */
+  const currentUserIdRef = useRef<string | null>(null)
+
   useEffect(() => {
-    getSessionWithTimeout()
-      .then(({ session }) => {
-        if (!session?.user) {
-          setLoading(false)
-          router.replace('/login')
-          return
-        }
-        const u = session.user
-        setUser({ id: u.id })
-        const name =
-          (u.user_metadata?.full_name as string) ||
-          (u.user_metadata?.name as string) ||
-          u.email ||
-          ''
-        setDisplayName(name)
+    let mounted = true
+
+    const applySession = (session: Session | null) => {
+      if (!mounted) return
+      if (!session?.user) {
+        currentUserIdRef.current = null
+        setUser(null)
+        setDisplayName('')
+        setBalance(0)
+        setPoints(0)
         setLoading(false)
-      })
+        router.replace('/login')
+        return
+      }
+      const u = session.user
+      const prevId = currentUserIdRef.current
+      currentUserIdRef.current = u.id
+      setUser({ id: u.id })
+      const name =
+        (u.user_metadata?.full_name as string) ||
+        (u.user_metadata?.name as string) ||
+        u.email ||
+        ''
+      setDisplayName(name)
+      if (prevId !== u.id) {
+        setBalance(0)
+        setPoints(0)
+      }
+      setLoading(false)
+    }
+
+    void getSessionWithTimeout()
+      .then(({ session }) => applySession(session))
       .catch(() => {
+        if (!mounted) return
         setLoading(false)
         router.replace('/login')
       })
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      applySession(session)
+    })
+
+    return () => {
+      mounted = false
+      subscription.unsubscribe()
+    }
   }, [router])
 
   const applyMemberRow = useCallback(
-    (data: {
-      credit?: unknown
-      point?: unknown
-      user_name?: string | null
-      email?: string | null
-    }) => {
+    (
+      data: {
+        id?: string
+        credit?: unknown
+        point?: unknown
+        user_name?: string | null
+        email?: string | null
+      },
+      expectedUserId: string
+    ) => {
+      if (currentUserIdRef.current !== expectedUserId) return
+      if (data.id != null && data.id !== expectedUserId) return
       const cred = data.credit
       const bal =
         cred != null && cred !== '' ? Number(cred) : 0
@@ -73,16 +111,18 @@ export default function MenuPage() {
   // โหลดยอดเงินและคะแนนครั้งแรก
   useEffect(() => {
     if (!user?.id) return
+    const uid = user.id
     const fetchBalance = () => {
       void Promise.resolve(
         supabase
           .from('vending_member')
-          .select('credit, point, email, user_name')
-          .eq('id', user.id)
+          .select('id, credit, point, email, user_name')
+          .eq('id', uid)
           .maybeSingle()
       )
         .then(({ data }) => {
-          if (data) applyMemberRow(data)
+          if (currentUserIdRef.current !== uid) return
+          if (data) applyMemberRow(data, uid)
         })
         .catch(() => {})
     }
@@ -92,17 +132,19 @@ export default function MenuPage() {
   // กลับมาที่แท็บ/แอป ให้ดึงยอดจาก member ใหม่
   useEffect(() => {
     if (!user?.id) return
+    const uid = user.id
     const refresh = () => {
       if (document.visibilityState !== 'visible') return
       void Promise.resolve(
         supabase
           .from('vending_member')
-          .select('credit, point, email, user_name')
-          .eq('id', user.id)
+          .select('id, credit, point, email, user_name')
+          .eq('id', uid)
           .maybeSingle()
       )
         .then(({ data }) => {
-          if (data) applyMemberRow(data)
+          if (currentUserIdRef.current !== uid) return
+          if (data) applyMemberRow(data, uid)
         })
         .catch(() => {})
     }
@@ -126,24 +168,27 @@ export default function MenuPage() {
   // Realtime: อัปเดตยอดเงินและคะแนนเมื่อแถว vending_member ของ user เปลี่ยน
   useEffect(() => {
     if (!user?.id) return
-    const channel = supabase
-      .channel('menu_balance_realtime')
+    const uid = user.id
+    const channel = supabase.channel(`menu_member_${uid}`)
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
           table: 'vending_member',
-          filter: `id=eq.${user.id}`,
+          filter: `id=eq.${uid}`,
         },
         (payload) => {
           const row = payload.new as {
+            id?: string
             credit?: unknown
             point?: unknown
             user_name?: string | null
             email?: string | null
           } | null
-          if (row) applyMemberRow(row)
+          if (row && currentUserIdRef.current === uid) {
+            applyMemberRow(row, uid)
+          }
         }
       )
       .subscribe()
@@ -155,6 +200,7 @@ export default function MenuPage() {
   // ยอดเงินคงเหลือบนหน้าจอ = vending_member.credit เท่านั้น (อัปเดตจาก Realtime เมื่อ webhook หัก amount แล้ว)
 
   const handleLogout = async () => {
+    currentUserIdRef.current = null
     await supabase.auth.signOut()
     router.push('/login')
   }
