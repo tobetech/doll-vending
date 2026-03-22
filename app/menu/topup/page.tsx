@@ -8,6 +8,12 @@ import { getSessionWithTimeout } from '@/lib/get-session-with-timeout'
 import { QrcodeSVG } from 'react-qrcode-pretty'
 import { FiArrowLeft, FiRefreshCw, FiCreditCard } from 'react-icons/fi'
 import DisneyBackground from '@/app/components/DisneyBackground'
+import {
+  APP_QR_SIZE,
+  APP_QR_ERROR_LEVEL,
+  APP_QR_FOREGROUND,
+  APP_QR_BACKGROUND,
+} from '@/lib/qr-display'
 
 const API_BASE = typeof window !== 'undefined' ? window.location.origin : ''
 const COUNTDOWN_SECONDS = 120 // 2 นาที (สอดคล้องกับ token ฝั่ง API)
@@ -229,24 +235,26 @@ export default function TopUpPage() {
             </p>
           )}
 
-          <div className="flex justify-center rounded-card p-4 min-h-[252px] items-center border border-bill-border bg-bill-pale/40">
+          <div className="flex w-full justify-center overflow-x-auto rounded-card p-3 sm:p-4 min-h-[min(85vw,380px)] sm:min-h-[380px] items-center border border-bill-border bg-bill-pale/40">
             {tokenLoading && !topupToken ? (
               <div className="flex flex-col items-center gap-2 text-bill-primary">
                 <FiRefreshCw className="w-8 h-8 animate-spin" />
                 <span className="text-sm">กำลังสร้าง QR...</span>
               </div>
             ) : qrString ? (
-              <div className="relative inline-block">
-                <QrcodeSVG
-                  value={qrString}
-                  size={220}
-                  level="H"
-                  margin={8}
-                  padding={8}
-                  variant={{ eyes: 'standard', body: 'dots' }}
-                  color="#000000"
-                  bgColor="#ffffff"
-                />
+              <div className="p-2 sm:p-3 bg-black rounded-xl shadow-lg">
+                <div className="bg-white rounded-lg p-1.5 sm:p-2">
+                  <QrcodeSVG
+                    value={qrString}
+                    size={APP_QR_SIZE}
+                    level={APP_QR_ERROR_LEVEL}
+                    margin={6}
+                    padding={6}
+                    variant={{ eyes: 'standard', body: 'dots' }}
+                    color={APP_QR_FOREGROUND}
+                    bgColor={APP_QR_BACKGROUND}
+                  />
+                </div>
               </div>
             ) : (
               <div className="flex flex-col items-center gap-3 text-center">
