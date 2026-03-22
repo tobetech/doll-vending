@@ -11,6 +11,16 @@ export interface VendingQRDynamicPayload {
   expiresAt?: string
 }
 
+/** แถว vending_member ที่ใช้ในหน้าโปรไฟล์ / เมนู */
+export interface VendingMemberProfile {
+  id: string
+  email: string
+  user_name?: string | null
+  tel_no?: string | null
+  credit?: number
+  point?: number
+}
+
 export interface VendingTransaction {
   id: string
   user_id: string

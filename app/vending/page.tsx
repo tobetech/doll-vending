@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
+import { getSessionWithTimeout } from '@/lib/get-session-with-timeout'
 import { QrcodeSVG } from 'react-qrcode-pretty'
 import { FiArrowLeft, FiRefreshCw, FiUser, FiShield } from 'react-icons/fi'
 import DisneyBackground from '@/app/components/DisneyBackground'
@@ -64,7 +65,7 @@ export default function VendingScanPage() {
   }
 
   const fetchQrToken = useCallback(async () => {
-    const { data: { session } } = await supabase.auth.getSession()
+    const { session } = await getSessionWithTimeout()
     if (!session?.access_token) {
       setQrError('ไม่ได้เข้าสู่ระบบ')
       return
@@ -99,43 +100,62 @@ export default function VendingScanPage() {
   }, [])
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (!data.session?.user) {
-        router.push('/login')
-        return
-      }
-      setUser({ id: data.session.user.id })
-      setLoading(false)
-    })
+    getSessionWithTimeout()
+      .then(({ session }) => {
+        if (!session?.user) {
+          setLoading(false)
+          router.replace('/login')
+          return
+        }
+        setUser({ id: session.user.id })
+        setLoading(false)
+      })
+      .catch(() => {
+        setLoading(false)
+        router.replace('/login')
+      })
   }, [router])
 
-  // เช็ค credit ก่อนให้เข้าได้ — ถ้าเท่ากับ 0 หรือไม่มีแถว/error กลับไปหน้าเมนู
+  // เช็ค credit ก่อนให้เข้าได้ — ถ้าเท่ากับ 0 หรือไม่มีแถว/error กลับไปหน้าเมนู (มี timeout กัน query ค้าง)
   useEffect(() => {
     if (!user?.id) return
     let cancelled = false
     redirectingRef.current = false
-    supabase
-      .from('vending_member')
-      .select('credit')
-      .eq('id', user.id)
-      .maybeSingle()
+    const failRedirect = () => {
+      if (cancelled || redirectingRef.current) return
+      redirectingRef.current = true
+      router.replace('/menu?insufficient=1')
+    }
+    const hangTimer = setTimeout(() => {
+      if (cancelled) return
+      failRedirect()
+    }, 15_000)
+
+    void Promise.resolve(
+      supabase
+        .from('vending_member')
+        .select('credit')
+        .eq('id', user.id)
+        .maybeSingle()
+    )
       .then(({ data, error }) => {
+        clearTimeout(hangTimer)
         if (cancelled) return
         const credit = data?.credit != null ? Number(data.credit) : 0
         if (error || credit <= 0) {
-          redirectingRef.current = true
-          router.replace('/menu?insufficient=1')
+          failRedirect()
           return
         }
         if (!redirectingRef.current) setCreditOk(true)
       })
       .catch(() => {
-        if (!cancelled && !redirectingRef.current) {
-          redirectingRef.current = true
-          router.replace('/menu?insufficient=1')
-        }
+        clearTimeout(hangTimer)
+        failRedirect()
       })
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+      clearTimeout(hangTimer)
+    }
   }, [user?.id, router])
 
   useEffect(() => {
@@ -334,7 +354,6 @@ export default function VendingScanPage() {
                   variant={{ eyes: 'standard', body: 'dots' }}
                   color="#000000"
                   bgColor="#ffffff"
-                  className="rounded-none"
                 />
                 <div
                   className="absolute inset-0 flex items-center justify-center pointer-events-none"

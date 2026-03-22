@@ -4,8 +4,9 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
+import { getSessionWithTimeout } from '@/lib/get-session-with-timeout'
 import type { VendingTransaction } from '@/lib/types'
-import { FiArrowLeft, FiHistory } from 'react-icons/fi'
+import { FiArrowLeft } from 'react-icons/fi'
 import DisneyBackground from '@/app/components/DisneyBackground'
 
 export default function HistoryPage() {
@@ -15,25 +16,38 @@ export default function HistoryPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (!data.session?.user) {
-        router.push('/login')
-        return
-      }
-      setUser({ id: data.session.user.id })
-    })
+    getSessionWithTimeout()
+      .then(({ session }) => {
+        if (!session?.user) {
+          setLoading(false)
+          router.replace('/login')
+          return
+        }
+        setUser({ id: session.user.id })
+      })
+      .catch(() => {
+        setLoading(false)
+        router.replace('/login')
+      })
   }, [router])
 
   useEffect(() => {
     if (!user?.id) return
-    supabase
-      .from('vending_transactions')
-      .select('id, machine_id, product_name, amount, status, created_at')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(100)
+    const hang = setTimeout(() => setLoading(false), 15_000)
+    void Promise.resolve(
+      supabase
+        .from('vending_transactions')
+        .select('id, machine_id, product_name, amount, status, created_at')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(100)
+    )
       .then(({ data, error }) => {
         if (!error) setList((data as VendingTransaction[]) ?? [])
+      })
+      .catch(() => {})
+      .finally(() => {
+        clearTimeout(hang)
         setLoading(false)
       })
   }, [user?.id])

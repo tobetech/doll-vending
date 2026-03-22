@@ -4,36 +4,68 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
-import { FiArrowLeft, FiUser, FiMail } from 'react-icons/fi'
+import { getSessionWithTimeout } from '@/lib/get-session-with-timeout'
+import { FiArrowLeft, FiUser, FiMail, FiPhone } from 'react-icons/fi'
 import DisneyBackground from '@/app/components/DisneyBackground'
+
+/** อนุญาตว่างได้; ถ้ามีค่า ต้องมีตัวเลขอย่างน้อย 9 หลัก (รองรับเบอร์ไทย) */
+function isValidTelNo(tel: string): boolean {
+  const t = tel.trim()
+  if (!t) return true
+  const d = t.replace(/\D/g, '')
+  return d.length >= 9 && d.length <= 15
+}
 
 export default function ProfilePage() {
   const router = useRouter()
   const [user, setUser] = useState<{ id: string } | null>(null)
+  const [userName, setUserName] = useState('')
+  const [telNo, setTelNo] = useState('')
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<{ type: 'ok' | 'err'; text: string } | null>(null)
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (!data.session?.user) {
-        router.push('/login')
-        return
-      }
-      setUser({ id: data.session.user.id })
-    })
+    getSessionWithTimeout()
+      .then(({ session }) => {
+        if (!session?.user) {
+          setLoading(false)
+          router.replace('/login')
+          return
+        }
+        setUser({ id: session.user.id })
+      })
+      .catch(() => {
+        setLoading(false)
+        router.replace('/login')
+      })
   }, [router])
 
   useEffect(() => {
     if (!user?.id) return
-    supabase
-      .from('vending_member')
-      .select('email')
-      .eq('id', user.id)
-      .maybeSingle()
-      .then(({ data }) => {
+    const hang = setTimeout(() => setLoading(false), 15_000)
+    void Promise.resolve(
+      supabase
+        .from('vending_member')
+        .select('email, user_name, tel_no')
+        .eq('id', user.id)
+        .maybeSingle()
+    )
+      .then(({ data, error }) => {
+        if (error) {
+          setMessage({ type: 'err', text: error.message })
+          return
+        }
         setEmail(data?.email ?? '')
+        setUserName((data?.user_name as string) ?? '')
+        setTelNo((data?.tel_no as string) ?? '')
+      })
+      .catch(() => {
+        setMessage({ type: 'err', text: 'โหลดข้อมูลไม่สำเร็จ' })
+      })
+      .finally(() => {
+        clearTimeout(hang)
         setLoading(false)
       })
   }, [user?.id])
@@ -41,19 +73,35 @@ export default function ProfilePage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!user?.id) return
-    const trimmed = email.trim()
-    if (!trimmed) {
-      setMessage({ type: 'err', text: 'กรุณาระบุอีเมล' })
+    const trimmedName = userName.trim()
+    const trimmedTel = telNo.trim()
+
+    if (!isValidTelNo(trimmedTel)) {
+      setMessage({
+        type: 'err',
+        text: 'หมายเลขโทรศัพท์ไม่ถูกต้อง (ต้องมีตัวเลขอย่างน้อย 9 หลัก)',
+      })
       return
     }
+
     setSaving(true)
     setMessage(null)
     const { error } = await supabase
       .from('vending_member')
-      .update({ email: trimmed })
+      .update({
+        user_name: trimmedName,
+        tel_no: trimmedTel,
+      })
       .eq('id', user.id)
+
     if (error) {
-      setMessage({ type: 'err', text: error.message })
+      setMessage({
+        type: 'err',
+        text:
+          error.message.includes('user_name') || error.message.includes('tel_no')
+            ? 'ยังไม่มีคอลัมน์ user_name/tel_no ในฐานข้อมูล — รันไฟล์ supabase/vending_member_user_profile.sql ใน Supabase SQL Editor'
+            : error.message,
+      })
     } else {
       setMessage({ type: 'ok', text: 'บันทึกข้อมูลแล้ว' })
     }
@@ -96,16 +144,46 @@ export default function ProfilePage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="text-sm font-medium text-gray-700 flex items-center gap-2 mb-1">
-                <FiMail className="text-disney-magenta w-4 h-4" />
-                อีเมล
+                <FiUser className="text-disney-magenta w-4 h-4" />
+                ชื่อ (user_name)
               </label>
               <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                type="text"
+                value={userName}
+                onChange={(e) => setUserName(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl border-2 border-disney-magenta-light bg-disney-pink-pale/30 focus:outline-none focus:border-disney-magenta"
-                placeholder="your@email.com"
+                placeholder="ชื่อที่ต้องการแสดง"
+                autoComplete="name"
               />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-gray-700 flex items-center gap-2 mb-1">
+                <FiPhone className="text-disney-magenta w-4 h-4" />
+                หมายเลขโทรศัพท์ (tel_no)
+              </label>
+              <input
+                type="tel"
+                value={telNo}
+                onChange={(e) => setTelNo(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl border-2 border-disney-magenta-light bg-disney-pink-pale/30 focus:outline-none focus:border-disney-magenta"
+                placeholder="เช่น 0812345678"
+                autoComplete="tel"
+                inputMode="tel"
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-gray-700 flex items-center gap-2 mb-1">
+                <FiMail className="text-disney-magenta w-4 h-4" />
+                อีเมล <span className="text-xs font-normal text-gray-500">(แสดงผลเท่านั้น)</span>
+              </label>
+              <div
+                className="w-full px-4 py-3 rounded-xl border-2 border-disney-magenta-light/60 bg-gray-100/80 text-gray-700 break-all"
+                aria-readonly
+              >
+                {email || '—'}
+              </div>
             </div>
 
             {message && (

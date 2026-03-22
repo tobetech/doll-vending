@@ -2,15 +2,15 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
+import { getSessionWithTimeout } from '@/lib/get-session-with-timeout'
 import DisneyBackground from '@/app/components/DisneyBackground'
 
 export default function HomePage() {
   const router = useRouter()
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) {
+    getSessionWithTimeout().then(({ session }) => {
+      if (session) {
         router.replace('/menu')
       } else {
         router.replace('/login')

@@ -6,11 +6,26 @@ import DisneyBackground from '@/app/components/DisneyBackground'
 const MOBILE_MAX_WIDTH = 768
 const isDev = process.env.NODE_ENV === 'development'
 
+function isLocalHost(hostname: string): boolean {
+  return (
+    hostname === 'localhost' ||
+    hostname === '127.0.0.1' ||
+    hostname === '[::1]' ||
+    hostname.endsWith('.localhost')
+  )
+}
+
 export default function MobileOnlyGate({ children }: { children: React.ReactNode }) {
   const [isMobile, setIsMobile] = useState<boolean | null>(null)
   const [desktopPreview, setDesktopPreview] = useState(false)
+  /** เปิดบนเครื่องตัวเอง (localhost) ไม่บังเดสก์ท็อป — แก้กรณี npm run start แล้วหน้าว่าง/ไม่เห็นแอป */
+  const [skipGateLocalhost, setSkipGateLocalhost] = useState(false)
 
   useEffect(() => {
+    if (typeof window === 'undefined') return
+    if (isLocalHost(window.location.hostname)) {
+      setSkipGateLocalhost(true)
+    }
     const check = () => {
       const w = window.innerWidth
       const ua = typeof navigator !== 'undefined' ? navigator.userAgent : ''
@@ -22,8 +37,8 @@ export default function MobileOnlyGate({ children }: { children: React.ReactNode
     return () => window.removeEventListener('resize', check)
   }, [])
 
-  // โหมดพัฒนา: ใช้บน desktop ได้เลย ไม่บัง
-  if (isDev) {
+  // โหมดพัฒนา หรือ localhost: ใช้บน desktop ได้เลย ไม่บัง
+  if (isDev || skipGateLocalhost) {
     return <>{children}</>
   }
 

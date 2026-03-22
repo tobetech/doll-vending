@@ -4,6 +4,8 @@
 create table if not exists public.vending_member (
   id uuid primary key references auth.users(id) on delete cascade,
   email text not null,
+  user_name text not null default '',
+  tel_no text not null default '',
   credit numeric not null default 0,
   point integer not null default 0,
   created_at timestamptz not null default now()

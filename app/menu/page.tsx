@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
+import { getSessionWithTimeout } from '@/lib/get-session-with-timeout'
 import {
   FiLogOut,
   FiDollarSign,
@@ -27,35 +28,50 @@ export default function MenuPage() {
   const [vendingCheckLoading, setVendingCheckLoading] = useState(false)
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (!data.session?.user) {
-        router.push('/login')
-        return
-      }
-      const u = data.session.user
-      setUser({ id: u.id })
-      const name = (u.user_metadata?.full_name as string) || (u.user_metadata?.name as string) || u.email || ''
-      setDisplayName(name)
-      setLoading(false)
-    })
+    getSessionWithTimeout()
+      .then(({ session }) => {
+        if (!session?.user) {
+          setLoading(false)
+          router.replace('/login')
+          return
+        }
+        const u = session.user
+        setUser({ id: u.id })
+        const name =
+          (u.user_metadata?.full_name as string) ||
+          (u.user_metadata?.name as string) ||
+          u.email ||
+          ''
+        setDisplayName(name)
+        setLoading(false)
+      })
+      .catch(() => {
+        setLoading(false)
+        router.replace('/login')
+      })
   }, [router])
 
   // โหลดยอดเงินและคะแนนครั้งแรก
   useEffect(() => {
     if (!user?.id) return
     const fetchBalance = () => {
-      supabase
-        .from('vending_member')
-        .select('credit, point, email')
-        .eq('id', user.id)
-        .single()
+      void Promise.resolve(
+        supabase
+          .from('vending_member')
+          .select('credit, point, email, user_name')
+          .eq('id', user.id)
+          .maybeSingle()
+      )
         .then(({ data }) => {
           if (data) {
             setBalance(Number(data.credit) ?? 0)
             setPoints(Number(data.point) ?? 0)
-            if (data.email) setDisplayName(String(data.email))
+            const un = String((data as { user_name?: string }).user_name ?? '').trim()
+            if (un) setDisplayName(un)
+            else if (data.email) setDisplayName(String(data.email))
           }
         })
+        .catch(() => {})
     }
     fetchBalance()
   }, [user?.id])
@@ -83,10 +99,18 @@ export default function MenuPage() {
           filter: `id=eq.${user.id}`,
         },
         (payload) => {
-          const row = payload.new as { credit?: number; point?: number } | null
+          const row = payload.new as {
+            credit?: number
+            point?: number
+            user_name?: string
+            email?: string
+          } | null
           if (row) {
             setBalance(Number(row.credit) ?? 0)
             setPoints(Number(row.point) ?? 0)
+            const un = String(row.user_name ?? '').trim()
+            if (un) setDisplayName(un)
+            else if (row.email) setDisplayName(String(row.email))
           }
         }
       )
@@ -136,7 +160,7 @@ export default function MenuPage() {
 
   const menuItems: { href: string; label: string; desc: string; Icon: React.ComponentType<{ className?: string }>; needCreditCheck?: boolean }[] = [
     { href: '/vending', label: 'สแกน QR Code ซื้อของ', desc: 'แสดง QR ที่ตู้กดเพื่อซื้อสินค้า', Icon: FiShoppingBag, needCreditCheck: true },
-    { href: '/menu/topup', label: 'เติมเงิน', desc: 'เติมเงินเข้า wallet', Icon: FiPlusCircle },
+    { href: '/menu/topup', label: 'เติมเงิน', desc: 'สแกน QR ที่ตู้เติมเงิน', Icon: FiPlusCircle },
     { href: '/menu/redeem', label: 'แลกคะแนน', desc: 'แลกคะแนนสะสมเป็นของรางวัล', Icon: FiGift },
     { href: '/menu/history', label: 'ประวัติการใช้งาน', desc: 'รายการซื้อและธุรกรรม', Icon: FiList },
     { href: '/menu/profile', label: 'แก้ไขข้อมูลส่วนตัว', desc: 'อีเมลและข้อมูลสมาชิก', Icon: FiUser },

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
+import { getSessionWithTimeout } from '@/lib/get-session-with-timeout'
 import { FiArrowLeft, FiGift } from 'react-icons/fi'
 import DisneyBackground from '@/app/components/DisneyBackground'
 
@@ -14,24 +15,33 @@ export default function RedeemPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (!data.session?.user) {
-        router.push('/login')
-        return
-      }
-      setUser({ id: data.session.user.id })
-    })
+    getSessionWithTimeout()
+      .then(({ session }) => {
+        if (!session?.user) {
+          setLoading(false)
+          router.replace('/login')
+          return
+        }
+        setUser({ id: session.user.id })
+      })
+      .catch(() => {
+        setLoading(false)
+        router.replace('/login')
+      })
   }, [router])
 
   useEffect(() => {
     if (!user?.id) return
-    supabase
-      .from('vending_member')
-      .select('point')
-      .eq('id', user.id)
-      .maybeSingle()
+    const hang = setTimeout(() => setLoading(false), 15_000)
+    void Promise.resolve(
+      supabase.from('vending_member').select('point').eq('id', user.id).maybeSingle()
+    )
       .then(({ data }) => {
         setPoints(Number(data?.point) ?? 0)
+      })
+      .catch(() => {})
+      .finally(() => {
+        clearTimeout(hang)
         setLoading(false)
       })
   }, [user?.id])
