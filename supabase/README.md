@@ -10,6 +10,9 @@
 
 หลังรันแล้ว ปุ่ม "จำลอง Webhook" และ API webhook จะทำงานได้
 
+**ถ้า webhook / Postman error:** `Could not find the 'credit_after' column`  
+→ รัน **`vending_transactions_credit_after.sql`** แล้วรอสักครู่ (หรือ Redeploy แอป) ให้ schema cache อัปเดต — API ฝั่งแอปจะ retry แบบไม่ใส่ `credit_after` ชั่วคราวได้ แต่ควรรัน SQL ให้ครบเพื่อประวัติและหน้าสแกน QR
+
 ## ตารางอื่น (ถ้าใช้)
 
 - **`vending_member_migration.sql`** — ตารางสมาชิก (id, email, credit, point) บันทึกหลัง sign up

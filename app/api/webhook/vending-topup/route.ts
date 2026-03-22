@@ -4,6 +4,7 @@ import {
   isMissingSupabaseServerEnv,
   nextMisconfiguredWebhook,
 } from '@/lib/supabase-env-error'
+import { isMissingCreditAfterColumnError } from '@/lib/vending-transaction-insert'
 
 type WebhookBody = {
   token: string
@@ -139,20 +140,32 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const { data: txRow, error: txErr } = await supabase
+    const topupBaseInsert: Record<string, unknown> = {
+      user_id: userId,
+      machine_id: machineId,
+      product_id: 'topup',
+      product_name: 'เติมเงิน (ตู้เติมเงิน)',
+      amount,
+      status: 'success',
+    }
+    if (transactionId) topupBaseInsert.id = transactionId
+
+    let { data: txRow, error: txErr } = await supabase
       .from('vending_transactions')
-      .insert({
-        user_id: userId,
-        machine_id: machineId,
-        product_id: 'topup',
-        product_name: 'เติมเงิน (ตู้เติมเงิน)',
-        amount,
-        status: 'success',
-        credit_after: newCredit,
-        id: transactionId || undefined,
-      })
+      .insert({ ...topupBaseInsert, credit_after: newCredit })
       .select('id, created_at')
       .single()
+
+    if (txErr && isMissingCreditAfterColumnError(txErr)) {
+      console.warn(
+        '[webhook/vending-topup] ไม่มีคอลัมน์ credit_after — retry แบบไม่มีฟิลด์นี้ แนะนำรัน supabase/vending_transactions_credit_after.sql'
+      )
+      ;({ data: txRow, error: txErr } = await supabase
+        .from('vending_transactions')
+        .insert(topupBaseInsert)
+        .select('id, created_at')
+        .single())
+    }
 
     if (txErr) {
       console.error('vending-topup transaction insert error:', txErr)

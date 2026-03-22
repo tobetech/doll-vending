@@ -4,6 +4,7 @@ import {
   isMissingSupabaseServerEnv,
   nextMisconfiguredWebhook,
 } from '@/lib/supabase-env-error'
+import { isMissingCreditAfterColumnError } from '@/lib/vending-transaction-insert'
 
 /** ปัดทศนิยม 2 ตำแหน่ง (เงินบาท) */
 function roundMoney(n: number): number {
@@ -194,20 +195,32 @@ export async function POST(request: NextRequest) {
 
     const confirmedCredit = roundMoney(Number(updatedMember.credit))
 
-    const { data: row, error } = await supabase
+    const baseInsert: Record<string, unknown> = {
+      user_id: userId,
+      machine_id: machineId,
+      product_id: productId,
+      product_name: productName,
+      amount: amtRounded,
+      status: 'success',
+    }
+    if (transactionId) baseInsert.id = transactionId
+
+    let { data: row, error } = await supabase
       .from('vending_transactions')
-      .insert({
-        user_id: userId,
-        machine_id: machineId,
-        product_id: productId,
-        product_name: productName,
-        amount: amtRounded,
-        status: 'success',
-        credit_after: confirmedCredit,
-        id: transactionId || undefined,
-      })
+      .insert({ ...baseInsert, credit_after: confirmedCredit })
       .select('id, created_at')
       .single()
+
+    if (error && isMissingCreditAfterColumnError(error)) {
+      console.warn(
+        '[webhook/vending] ไม่มีคอลัมน์ credit_after — บันทึกรายการแบบไม่มีฟิลด์นี้ แนะนำรัน supabase/vending_transactions_credit_after.sql'
+      )
+      ;({ data: row, error } = await supabase
+        .from('vending_transactions')
+        .insert(baseInsert)
+        .select('id, created_at')
+        .single())
+    }
 
     if (error) {
       console.error('Webhook vending insert error:', error)
