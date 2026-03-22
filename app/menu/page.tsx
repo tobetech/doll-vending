@@ -252,7 +252,6 @@ export default function MenuPage() {
       <header className="bg-bill-primary text-white shadow-md relative">
         <div className="max-w-lg mx-auto px-4 py-4">
           <h1 className="text-xl font-bold tracking-tight">Doll Vending</h1>
-          <p className="text-sm text-white/85 mt-0.5">แอปซื้อจากตู้กด</p>
         </div>
       </header>
 
