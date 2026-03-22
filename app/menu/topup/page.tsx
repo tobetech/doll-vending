@@ -273,10 +273,6 @@ export default function TopUpPage() {
           </div>
           {/* ไม่แสดงปุ่ม "สร้าง QR ใหม่" ใต้ QR — สร้าง token ครั้งเดียวตอนเข้าหน้า; ถ้า error ใช้ปุ่มในช่องกลาง */}
         </section>
-
-        <p className="text-xs text-gray-500 mt-4 text-center px-2">
-          เอกสารต่อตู้: ดู <code className="bg-white/80 px-1 rounded">docs/TOPUP_MACHINE_INTEGRATION.md</code>
-        </p>
       </main>
     </div>
   )
