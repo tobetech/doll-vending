@@ -42,6 +42,18 @@ npm run dev
 
 เปิด http://localhost:3000 → ล็อกอิน → หน้าเมนู → สแกน QR (/vending), เติมเงิน, ประวัติ
 
+### 5. Deploy บน Vercel
+
+ใน **Project → Settings → Environment Variables** ใส่ครบทุกตัว (เลือก Production + Preview) แล้ว **Redeploy**:
+
+| ตัวแปร | หมายเหตุ |
+|--------|----------|
+| `NEXT_PUBLIC_SUPABASE_URL` | จาก Supabase → Settings → API |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | anon public |
+| `SUPABASE_SERVICE_ROLE_KEY` | **service_role** (ห้ามเปิดเผย) — ใช้กับ API / webhook |
+
+ถ้าไม่ใส่ `NEXT_PUBLIC_*` ตอน build เคย error `supabaseUrl is required` — โค้ดล่าสุดใช้ placeholder ให้ build ผ่านได้ แต่**แอปจะใช้งาน Supabase ไม่ได้จนกว่าจะใส่ค่าจริงแล้ว build ใหม่**
+
 ## Dynamic QR (ความปลอดภัย)
 
 - QR ไม่ใส่ `userId` โดยตรง แต่ใส่ **token** ที่สร้างใหม่ทุก 90 วินาที
