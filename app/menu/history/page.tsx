@@ -37,7 +37,7 @@ export default function HistoryPage() {
     void Promise.resolve(
       supabase
         .from('vending_transactions')
-        .select('id, machine_id, product_name, amount, status, created_at')
+        .select('id, machine_id, product_name, amount, status, created_at, credit_after')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(100)

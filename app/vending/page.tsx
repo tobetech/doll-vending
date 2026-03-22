@@ -24,6 +24,12 @@ export default function VendingScanPage() {
   const [qrError, setQrError] = useState<string | null>(null)
   const [countdownSeconds, setCountdownSeconds] = useState<number | null>(null)
   const [webhookResult, setWebhookResult] = useState<'success' | 'failed' | null>(null)
+  const [successSummary, setSuccessSummary] = useState<{
+    amount: number
+    productName?: string
+    /** ยอดคงเหลือหลังรายการ (= newCredit จาก webhook / credit_after) */
+    newCredit?: number
+  } | null>(null)
   const [testWebhookLoading, setTestWebhookLoading] = useState(false)
   const [testWebhookError, setTestWebhookError] = useState<string | null>(null)
   const [creditOk, setCreditOk] = useState<boolean | null>(null)
@@ -52,6 +58,15 @@ export default function VendingScanPage() {
       if (res.ok) {
         // จำลองผลสำเร็จทันที (ไม่ต้องรอ Realtime) — หยุดนับถอยหลัง แล้วแสดงป๊อปอัปและกลับเมนู
         if (countdownRef.current) clearInterval(countdownRef.current)
+        const nc =
+          json.newCredit != null && Number.isFinite(Number(json.newCredit))
+            ? Number(json.newCredit)
+            : undefined
+        setSuccessSummary({
+          amount: 0,
+          productName: 'สินค้าทดสอบ',
+          newCredit: nc,
+        })
         setWebhookResult('success')
         setTimeout(() => router.replace('/menu'), WEBHOOK_RESULT_SHOW_MS)
       } else {
@@ -206,8 +221,25 @@ export default function VendingScanPage() {
           filter: `user_id=eq.${user.id}`,
         },
         (payload) => {
-          const row = payload.new as { status?: string }
+          const row = payload.new as {
+            status?: string
+            amount?: unknown
+            product_name?: string | null
+            credit_after?: unknown
+          }
           const status = row?.status === 'success' ? 'success' : 'failed'
+          if (status === 'success') {
+            const ca = row?.credit_after
+            const newCredit =
+              ca != null && ca !== '' && Number.isFinite(Number(ca))
+                ? Number(ca)
+                : undefined
+            setSuccessSummary({
+              amount: Number(row?.amount) || 0,
+              productName: row?.product_name || undefined,
+              newCredit,
+            })
+          }
           setWebhookResult(status)
           if (countdownRef.current) clearInterval(countdownRef.current)
           setTimeout(() => router.replace('/menu'), WEBHOOK_RESULT_SHOW_MS)
@@ -226,7 +258,7 @@ export default function VendingScanPage() {
     const check = async () => {
       const { data } = await supabase
         .from('vending_transactions')
-        .select('id, status, created_at')
+        .select('id, status, created_at, amount, product_name, credit_after')
         .eq('user_id', user.id)
         .gte('created_at', new Date(startedAt - 5000).toISOString())
         .order('created_at', { ascending: false })
@@ -234,6 +266,23 @@ export default function VendingScanPage() {
         .maybeSingle()
       if (data) {
         const status = data.status === 'success' ? 'success' : 'failed'
+        if (status === 'success') {
+          const d = data as {
+            amount?: unknown
+            product_name?: string
+            credit_after?: unknown
+          }
+          const ca = d.credit_after
+          const newCredit =
+            ca != null && ca !== '' && Number.isFinite(Number(ca))
+              ? Number(ca)
+              : undefined
+          setSuccessSummary({
+            amount: Number(d.amount) || 0,
+            productName: d.product_name || undefined,
+            newCredit,
+          })
+        }
         setWebhookResult(status)
         if (countdownRef.current) clearInterval(countdownRef.current)
         setTimeout(() => router.replace('/menu'), WEBHOOK_RESULT_SHOW_MS)
@@ -306,6 +355,36 @@ export default function VendingScanPage() {
               <p className="text-2xl font-bold">
                 {webhookResult === 'success' ? 'สำเร็จ' : 'ล้มเหลว'}
               </p>
+              {webhookResult === 'success' && successSummary && (
+                <div className="mt-3 text-left text-sm text-gray-700 space-y-1">
+                  {successSummary.productName ? (
+                    <p>
+                      <span className="text-gray-500">สินค้า:</span>{' '}
+                      {successSummary.productName}
+                    </p>
+                  ) : null}
+                  <p>
+                    <span className="text-gray-500">หักจากยอดเงิน:</span>{' '}
+                    <span className="font-semibold text-disney-magenta">
+                      {new Intl.NumberFormat('th-TH', {
+                        style: 'currency',
+                        currency: 'THB',
+                      }).format(successSummary.amount)}
+                    </span>
+                  </p>
+                  {successSummary.newCredit != null ? (
+                    <p>
+                      <span className="text-gray-500">ยอดเงินคงเหลือ:</span>{' '}
+                      <span className="font-semibold text-disney-magenta">
+                        {new Intl.NumberFormat('th-TH', {
+                          style: 'currency',
+                          currency: 'THB',
+                        }).format(successSummary.newCredit)}
+                      </span>
+                    </p>
+                  ) : null}
+                </div>
+              )}
               <p className="text-sm text-gray-500 mt-2">
                 กำลังกลับไปหน้าเมนู...
               </p>

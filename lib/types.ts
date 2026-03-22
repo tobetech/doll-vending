@@ -31,4 +31,6 @@ export interface VendingTransaction {
   status: 'success' | 'failed' | 'pending'
   created_at: string
   webhook_received_at?: string
+  /** ยอด credit หลังรายการ (= newCredit จาก webhook) */
+  credit_after?: number | null
 }

@@ -144,6 +144,7 @@ export async function POST(request: NextRequest) {
         product_name: 'เติมเงิน (ตู้เติมเงิน)',
         amount,
         status: 'success',
+        credit_after: newCredit,
         id: transactionId || undefined,
       })
       .select('id, created_at')

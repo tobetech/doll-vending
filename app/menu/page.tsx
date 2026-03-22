@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
@@ -51,6 +51,25 @@ export default function MenuPage() {
       })
   }, [router])
 
+  const applyMemberRow = useCallback(
+    (data: {
+      credit?: unknown
+      point?: unknown
+      user_name?: string | null
+      email?: string | null
+    }) => {
+      const cred = data.credit
+      const bal =
+        cred != null && cred !== '' ? Number(cred) : 0
+      setBalance(Number.isFinite(bal) ? bal : 0)
+      setPoints(Number(data.point) ?? 0)
+      const un = String(data.user_name ?? '').trim()
+      if (un) setDisplayName(un)
+      else if (data.email) setDisplayName(String(data.email))
+    },
+    []
+  )
+
   // โหลดยอดเงินและคะแนนครั้งแรก
   useEffect(() => {
     if (!user?.id) return
@@ -63,18 +82,37 @@ export default function MenuPage() {
           .maybeSingle()
       )
         .then(({ data }) => {
-          if (data) {
-            setBalance(Number(data.credit) ?? 0)
-            setPoints(Number(data.point) ?? 0)
-            const un = String((data as { user_name?: string }).user_name ?? '').trim()
-            if (un) setDisplayName(un)
-            else if (data.email) setDisplayName(String(data.email))
-          }
+          if (data) applyMemberRow(data)
         })
         .catch(() => {})
     }
     fetchBalance()
-  }, [user?.id])
+  }, [user?.id, applyMemberRow])
+
+  // กลับมาที่แท็บ/แอป ให้ดึงยอดจาก member ใหม่
+  useEffect(() => {
+    if (!user?.id) return
+    const refresh = () => {
+      if (document.visibilityState !== 'visible') return
+      void Promise.resolve(
+        supabase
+          .from('vending_member')
+          .select('credit, point, email, user_name')
+          .eq('id', user.id)
+          .maybeSingle()
+      )
+        .then(({ data }) => {
+          if (data) applyMemberRow(data)
+        })
+        .catch(() => {})
+    }
+    document.addEventListener('visibilitychange', refresh)
+    window.addEventListener('focus', refresh)
+    return () => {
+      document.removeEventListener('visibilitychange', refresh)
+      window.removeEventListener('focus', refresh)
+    }
+  }, [user?.id, applyMemberRow])
 
   // แสดง popup เมื่อถูก redirect มาจาก /vending เพราะยอดไม่เพียงพอ
   useEffect(() => {
@@ -100,25 +138,21 @@ export default function MenuPage() {
         },
         (payload) => {
           const row = payload.new as {
-            credit?: number
-            point?: number
-            user_name?: string
-            email?: string
+            credit?: unknown
+            point?: unknown
+            user_name?: string | null
+            email?: string | null
           } | null
-          if (row) {
-            setBalance(Number(row.credit) ?? 0)
-            setPoints(Number(row.point) ?? 0)
-            const un = String(row.user_name ?? '').trim()
-            if (un) setDisplayName(un)
-            else if (row.email) setDisplayName(String(row.email))
-          }
+          if (row) applyMemberRow(row)
         }
       )
       .subscribe()
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [user?.id])
+  }, [user?.id, applyMemberRow])
+
+  // ยอดเงินคงเหลือบนหน้าจอ = vending_member.credit เท่านั้น (อัปเดตจาก Realtime เมื่อ webhook หัก amount แล้ว)
 
   const handleLogout = async () => {
     await supabase.auth.signOut()

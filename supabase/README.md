@@ -15,6 +15,7 @@
 - **`vending_member_migration.sql`** — ตารางสมาชิก (id, email, credit, point) บันทึกหลัง sign up
 - **`vending_member_user_profile.sql`** — เพิ่มคอลัมน์ `user_name`, `tel_no` สำหรับแก้ไขในหน้าโปรไฟล์
 - **`vending_topup_token_migration.sql`** — ตาราง `vending_topup_token` + Realtime สำหรับ QR เติมเงินที่ตู้
+- **`vending_transactions_credit_after.sql`** — คอลัมน์ `credit_after` ใน `vending_transactions` (ยอดหลังรายการ = newCredit จาก webhook) สำหรับอัปเดตยอดบนเมนู
 - **`vending_member_credit_point.sql`** — เพิ่มคอลัมน์ credit, point (รันถ้าสร้างตารางไปก่อนแล้ว)
 - **`vending_member_realtime.sql`** — เปิด Realtime ให้ vending_member (ยอดเงิน/คะแนนอัปเดตแบบ realtime)
 - `vending_qr_tokens_migration.sql` — ตาราง token สำหรับ Dynamic QR

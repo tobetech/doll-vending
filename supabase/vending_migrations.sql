@@ -8,6 +8,7 @@ create table if not exists public.vending_transactions (
   product_id text,
   product_name text,
   amount numeric not null default 0,
+  credit_after numeric,
   status text not null default 'success' check (status in ('success', 'failed', 'pending')),
   created_at timestamptz not null default now(),
   webhook_received_at timestamptz default now()

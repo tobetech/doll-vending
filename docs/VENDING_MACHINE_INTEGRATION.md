@@ -103,15 +103,34 @@
 | `machineId` | ใช่ | รหัสตู้กด (ใช้แยกแต่ละตู้) |
 | `productId` | ไม่ | รหัสสินค้า |
 | `productName` | ไม่ | ชื่อสินค้า |
-| `amount` | ไม่ | จำนวนเงิน (บาท) |
+| `amount` | ไม่* | จำนวนเงินที่**หักจากยอดคงเหลือ** (บาท) — ระบบคำนวณ **`vending_member.credit` ใหม่ = ยอดเดิม − amount`** แล้วบันทึกลง Supabase (เช่น credit 500, amount 10 → เหลือ 490) **ถ้าไม่ส่งหรือส่ง 0 ยอด credit จะไม่เปลี่ยน** แต่รายการยังบันทึกสำเร็จได้ |
 | `transactionId` | ไม่ | UUID ของรายการ (ถ้าต้องการกำหนดเอง) |
+
+**ชื่อฟิลด์แบบ snake_case ใช้ได้:** `user_id`, `machine_id`, `product_id`, `product_name`, `transaction_id`  
+**ยอดหัก — รองรับชื่อฟิลด์ใดฟิลด์หนึ่งต่อไปนี้ (ตัวเลขหรือสตริง):** `amount`, `deduct`, `deduction`, `price`, `total`, `cost`, `baht`, `value`, `pay`, `paid`, `money`, `charge`
 
 **Response สำเร็จ (200):**
 ```json
 {
   "ok": true,
   "transactionId": "uuid-ที่ระบบสร้าง",
-  "createdAt": "2025-03-15T..."
+  "createdAt": "2025-03-15T...",
+  "newCredit": 45.5,
+  "deducted": 25
+}
+```
+- `newCredit` = ยอดเงินคงเหลือหลังหัก (เก็บใน DB เป็น `vending_transactions.credit_after` — แอปเมนูใช้อัปเดตยอดแสดงผล)
+- `deducted` = จำนวนที่หัก (เท่า `amount` ที่ส่งมา)
+
+**ยอดเงินไม่พอ (402):**  
+`amount` มากกว่า `credit` ปัจจุบัน — ไม่บันทึกรายการ ไม่หักเงิน  
+```json
+{
+  "ok": false,
+  "error": "Insufficient credit",
+  "code": "insufficient_credit",
+  "credit": 10,
+  "required": 25
 }
 ```
 
@@ -141,7 +160,7 @@
    ต้องได้ **userId จาก Validate** ก่อน แล้วค่อยส่ง **userId เดียวกัน** ใน Webhook ตอนทำรายการสำเร็จ
 
 3. **ยอดเงิน (credit)**  
-   แอปจะให้แสดง QR ได้เฉพาะเมื่อลูกค้ามียอดเงิน (credit > 0) ฝั่งแอปไม่หักเงินอัตโนมัติเมื่อรับ Webhook — ถ้าต้องการหักเงินจากบัญชีลูกค้า (ตาราง `vending_member.credit`) ต้องทำใน backend ของตู้หรือเพิ่ม logic ใน API Webhook/ระบบหลังบ้าน
+   Webhook `/api/webhook/vending` จะ**หัก `vending_member.credit` ตามยอดใน `amount` (หรือฟิลด์ยอดที่รองรับด้านบน)** ถ้าตู้ไม่ส่งยอดหรือส่งเป็น 0 รายการจะสำเร็จได้แต่**ยอดใน Supabaseจะไม่ลด** — ให้ตรวจ body ที่ตู้ส่งจริงใน log ของเซิร์ฟเวอร์ (เช่น Vercel) หรือ Postman
 
 4. **ทดสอบ**  
    - ใช้ Postman/curl เรียก `/api/webhook/vending` ด้วย `userId` จริง (ดู User ID ได้จากแอปโหมด dev หรือ Supabase) เพื่อทดสอบว่าแอปแสดง "สำเร็จ" และกลับเมนู
