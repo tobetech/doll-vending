@@ -50,16 +50,20 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center px-4 relative overflow-y-auto">
+    <div className="min-h-screen flex flex-col items-center px-4 relative overflow-y-auto bg-white">
       <DisneyBackground />
-      <div className="flex-1 flex items-start justify-center pt-[max(1.5rem,env(safe-area-inset-top))] pb-12 w-full max-w-md">
-        <div className="bg-white/95 backdrop-blur w-full rounded-3xl shadow-2xl p-8 border-2 border-disney-magenta-light shrink-0">
+      <div className="w-full max-w-md bg-bill-primary text-white py-4 px-4 text-center shadow-md">
+        <p className="text-lg font-bold">Doll Vending</p>
+        <p className="text-sm text-white/85">เข้าสู่ระบบเพื่อใช้งานแอป</p>
+      </div>
+      <div className="flex-1 flex items-start justify-center pt-6 pb-12 w-full max-w-md">
+        <div className="bg-white w-full rounded-card shadow-card p-8 border border-bill-border shrink-0">
         <div className="flex justify-center mb-6">
-          <div className="w-16 h-16 rounded-full bg-disney-magenta-soft flex items-center justify-center shadow-lg border-2 border-disney-magenta-light">
-            <FiArrowRight className="text-disney-magenta text-2xl" />
+          <div className="w-16 h-16 rounded-full bg-bill-pale flex items-center justify-center shadow-inner border border-bill-border">
+            <FiArrowRight className="text-bill-primary text-2xl" />
           </div>
         </div>
-        <h2 className="text-2xl font-bold text-center text-disney-magenta mb-2">
+        <h2 className="text-2xl font-bold text-center text-bill-primary mb-2">
           {mode === 'signin' ? 'เข้าสู่ระบบ' : 'สมัครสมาชิก'}
         </h2>
         <p className="text-center text-gray-600 mb-6">
@@ -67,8 +71,8 @@ export default function LoginPage() {
         </p>
         <div className="mb-4">
           <label className="text-sm font-medium text-gray-700">อีเมล</label>
-          <div className="flex items-center mt-1 bg-disney-pink-pale/50 border-2 border-disney-magenta-light rounded-xl px-3">
-            <FiMail className="text-disney-magenta/70" />
+          <div className="flex items-center mt-1 bg-bill-pale/80 border border-bill-border rounded-card px-3">
+            <FiMail className="text-bill-primary/70" />
             <input
               type="email"
               className="w-full bg-transparent px-2 py-3 outline-none"
@@ -79,8 +83,8 @@ export default function LoginPage() {
         </div>
         <div className="mb-4">
           <label className="text-sm font-medium text-gray-700">รหัสผ่าน</label>
-          <div className="flex items-center mt-1 bg-disney-pink-pale/50 border-2 border-disney-magenta-light rounded-xl px-3">
-            <FiLock className="text-disney-magenta/70" />
+          <div className="flex items-center mt-1 bg-bill-pale/80 border border-bill-border rounded-card px-3">
+            <FiLock className="text-bill-primary/70" />
             <input
               type="password"
               className="w-full bg-transparent px-2 py-3 outline-none"
@@ -92,8 +96,8 @@ export default function LoginPage() {
         {mode === 'signup' && (
           <div className="mb-4">
             <label className="text-sm font-medium text-gray-700">ยืนยันรหัสผ่าน</label>
-            <div className="flex items-center mt-1 bg-disney-pink-pale/50 border-2 border-disney-magenta-light rounded-xl px-3">
-              <FiLock className="text-disney-magenta/70" />
+            <div className="flex items-center mt-1 bg-bill-pale/80 border border-bill-border rounded-card px-3">
+              <FiLock className="text-bill-primary/70" />
               <input
                 type="password"
                 className="w-full bg-transparent px-2 py-3 outline-none"
@@ -104,18 +108,18 @@ export default function LoginPage() {
           </div>
         )}
         {error && (
-          <div className="text-center text-red-500 text-sm mb-4">{error}</div>
+          <div className="text-center text-bill-danger text-sm mb-4">{error}</div>
         )}
         <button
           onClick={handleSubmit}
           disabled={loading}
-          className="w-full mt-2 bg-disney-magenta text-white py-3 rounded-xl font-semibold shadow-lg hover:bg-disney-rose transition border-2 border-disney-magenta-light"
+          className="w-full mt-2 bg-bill-primary text-white py-3 rounded-card font-semibold shadow-md hover:opacity-95 transition border border-bill-blueDark/30"
         >
           {loading ? 'กำลังดำเนินการ...' : mode === 'signin' ? 'เข้าสู่ระบบ' : 'สมัครสมาชิก'}
         </button>
         <button
           onClick={() => setMode(mode === 'signin' ? 'signup' : 'signin')}
-          className="w-full text-center text-sm text-disney-magenta font-medium mt-4"
+          className="w-full text-center text-sm text-bill-blue font-semibold mt-4"
         >
           {mode === 'signin' ? 'ยังไม่มีบัญชี? สมัครสมาชิก' : 'มีบัญชีแล้ว? เข้าสู่ระบบ'}
         </button>

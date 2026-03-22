@@ -50,35 +50,35 @@ export default function RedeemPage() {
     return (
       <div className="min-h-screen flex items-center justify-center relative">
         <DisneyBackground />
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-disney-magenta border-t-transparent" />
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-bill-primary border-t-transparent" />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen relative">
+    <div className="min-h-screen relative bg-white">
       <DisneyBackground />
-      <header className="bg-white/90 backdrop-blur border-b-2 border-disney-magenta-light relative">
+      <header className="bg-bill-primary text-white shadow-md relative">
         <div className="max-w-lg mx-auto px-4 py-3 flex items-center gap-3">
           <Link
             href="/menu"
-            className="p-2 rounded-lg hover:bg-disney-pink-pale/70 text-disney-magenta"
+            className="p-2 rounded-lg hover:bg-white/10 text-white"
           >
             <FiArrowLeft className="w-5 h-5" />
           </Link>
-          <h1 className="text-lg font-bold text-disney-magenta">แลกคะแนน</h1>
+          <h1 className="text-lg font-bold">แลกคะแนน</h1>
         </div>
       </header>
 
       <main className="max-w-lg mx-auto px-4 py-6 relative">
-        <section className="bg-white/95 backdrop-blur rounded-2xl shadow-lg border-2 border-disney-magenta-light p-6">
+        <section className="bg-white rounded-card shadow-card border border-bill-border p-6">
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-12 h-12 rounded-full bg-disney-magenta-soft flex items-center justify-center border-2 border-disney-magenta-light">
-              <FiGift className="text-disney-magenta w-6 h-6" />
+            <div className="w-12 h-12 rounded-full bg-bill-pale flex items-center justify-center border border-bill-border">
+              <FiGift className="text-bill-primary w-6 h-6" />
             </div>
             <div>
               <h2 className="font-semibold text-gray-800">คะแนนสะสมของคุณ</h2>
-              <p className="text-2xl font-bold text-disney-magenta">{points} คะแนน</p>
+              <p className="text-2xl font-bold text-bill-gold">{points} คะแนน</p>
             </div>
           </div>
           <p className="text-sm text-gray-600">

@@ -3,11 +3,23 @@
 @tailwind utilities;
 
 :root {
-  --disney-magenta: #E91E8C;
-  --disney-magenta-soft: #FCE4EC;
-  --disney-pink-pale: #FFE4F0;
+  --bill-primary: #0059b3;
+  --bill-blue: #1a75ff;
+  --bill-blue-dark: #0047b3;
+  --bill-pale: #e6f2ff;
+  --bill-gold: #fbc02d;
+  --bill-border: #dbe7f0;
+  --bill-danger: #d32f2f;
 }
 
 body {
-  color: #1f2937;
+  color: #333333;
+  background-color: #ffffff;
+}
+
+/* การ์ดยอดหลักแบบ gradient (จ่ายบิล) */
+@layer utilities {
+  .bill-balance-gradient {
+    background: linear-gradient(135deg, #1a75ff 0%, #0047b3 55%, #003d99 100%);
+  }
 }

@@ -46,7 +46,7 @@ export default function MobileOnlyGate({ children }: { children: React.ReactNode
     return (
       <div className="min-h-screen flex items-center justify-center relative">
         <DisneyBackground />
-        <div className="animate-spin rounded-full h-10 w-10 border-4 border-disney-magenta border-t-transparent" />
+        <div className="animate-spin rounded-full h-10 w-10 border-4 border-bill-primary border-t-transparent" />
       </div>
     )
   }
@@ -55,14 +55,14 @@ export default function MobileOnlyGate({ children }: { children: React.ReactNode
     return (
       <div className="min-h-screen flex flex-col items-center justify-center px-6 text-center relative">
         <DisneyBackground />
-        <div className="w-20 h-20 rounded-full bg-white/90 border-2 border-disney-magenta-light flex items-center justify-center text-4xl mb-6 shadow-lg">📱</div>
-        <h1 className="text-xl font-bold text-disney-magenta mb-2">Doll Vending</h1>
+        <div className="w-20 h-20 rounded-full bg-white border border-bill-border flex items-center justify-center text-4xl mb-6 shadow-card">📱</div>
+        <h1 className="text-xl font-bold text-bill-primary mb-2">Doll Vending</h1>
         <p className="text-gray-700 mb-1">แอปนี้ใช้ได้บนมือถือเท่านั้น</p>
         <p className="text-sm text-gray-600 mb-6">กรุณาเปิดลิงก์นี้บนสมาร์ทโฟน หรือสแกน QR ด้วยมือถือ</p>
         <button
           type="button"
           onClick={() => setDesktopPreview(true)}
-          className="px-5 py-2.5 bg-disney-magenta text-white rounded-xl font-medium hover:bg-disney-rose transition border-2 border-disney-magenta-light shadow-lg"
+          className="px-5 py-2.5 bg-bill-primary text-white rounded-card font-semibold hover:opacity-95 transition border border-bill-blueDark/30 shadow-md"
         >
           ดูตัวอย่างบนเดสก์ท็อป
         </button>
@@ -73,8 +73,8 @@ export default function MobileOnlyGate({ children }: { children: React.ReactNode
   if (!isMobile && desktopPreview) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6 relative">
-        <div className="absolute inset-0 bg-disney-magenta/20" />
-        <div className="bg-disney-magenta rounded-[2rem] p-2 shadow-2xl relative" style={{ width: 375, maxWidth: '100%' }}>
+        <div className="absolute inset-0 bg-bill-pale" />
+        <div className="bg-bill-primary rounded-[2rem] p-2 shadow-2xl relative" style={{ width: 375, maxWidth: '100%' }}>
           <div className="rounded-[1.5rem] overflow-hidden bg-white" style={{ height: 667 }}>
             {children}
           </div>

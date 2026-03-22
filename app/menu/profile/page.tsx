@@ -112,31 +112,31 @@ export default function ProfilePage() {
     return (
       <div className="min-h-screen flex items-center justify-center relative">
         <DisneyBackground />
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-disney-magenta border-t-transparent" />
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-bill-primary border-t-transparent" />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen relative">
+    <div className="min-h-screen relative bg-white">
       <DisneyBackground />
-      <header className="bg-white/90 backdrop-blur border-b-2 border-disney-magenta-light relative">
+      <header className="bg-bill-primary text-white shadow-md relative">
         <div className="max-w-lg mx-auto px-4 py-3 flex items-center gap-3">
           <Link
             href="/menu"
-            className="p-2 rounded-lg hover:bg-disney-pink-pale/70 text-disney-magenta"
+            className="p-2 rounded-lg hover:bg-white/10 text-white"
           >
             <FiArrowLeft className="w-5 h-5" />
           </Link>
-          <h1 className="text-lg font-bold text-disney-magenta">แก้ไขข้อมูลส่วนตัว</h1>
+          <h1 className="text-lg font-bold">แก้ไขข้อมูลส่วนตัว</h1>
         </div>
       </header>
 
       <main className="max-w-lg mx-auto px-4 py-6 relative">
-        <section className="bg-white/95 backdrop-blur rounded-2xl shadow-lg border-2 border-disney-magenta-light p-6">
+        <section className="bg-white rounded-card shadow-card border border-bill-border p-6">
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-12 h-12 rounded-full bg-disney-magenta-soft flex items-center justify-center border-2 border-disney-magenta-light">
-              <FiUser className="text-disney-magenta w-6 h-6" />
+            <div className="w-12 h-12 rounded-full bg-bill-pale flex items-center justify-center border border-bill-border">
+              <FiUser className="text-bill-primary w-6 h-6" />
             </div>
             <h2 className="font-semibold text-gray-800">ข้อมูลสมาชิก</h2>
           </div>
@@ -144,14 +144,14 @@ export default function ProfilePage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="text-sm font-medium text-gray-700 flex items-center gap-2 mb-1">
-                <FiUser className="text-disney-magenta w-4 h-4" />
+                <FiUser className="text-bill-primary w-4 h-4" />
                 ชื่อ (user_name)
               </label>
               <input
                 type="text"
                 value={userName}
                 onChange={(e) => setUserName(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl border-2 border-disney-magenta-light bg-disney-pink-pale/30 focus:outline-none focus:border-disney-magenta"
+                className="w-full px-4 py-3 rounded-card border border-bill-border bg-bill-pale/50 focus:outline-none focus:border-bill-primary focus:ring-1 focus:ring-bill-primary/30"
                 placeholder="ชื่อที่ต้องการแสดง"
                 autoComplete="name"
               />
@@ -159,14 +159,14 @@ export default function ProfilePage() {
 
             <div>
               <label className="text-sm font-medium text-gray-700 flex items-center gap-2 mb-1">
-                <FiPhone className="text-disney-magenta w-4 h-4" />
+                <FiPhone className="text-bill-primary w-4 h-4" />
                 หมายเลขโทรศัพท์ (tel_no)
               </label>
               <input
                 type="tel"
                 value={telNo}
                 onChange={(e) => setTelNo(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl border-2 border-disney-magenta-light bg-disney-pink-pale/30 focus:outline-none focus:border-disney-magenta"
+                className="w-full px-4 py-3 rounded-card border border-bill-border bg-bill-pale/50 focus:outline-none focus:border-bill-primary focus:ring-1 focus:ring-bill-primary/30"
                 placeholder="เช่น 0812345678"
                 autoComplete="tel"
                 inputMode="tel"
@@ -175,11 +175,11 @@ export default function ProfilePage() {
 
             <div>
               <label className="text-sm font-medium text-gray-700 flex items-center gap-2 mb-1">
-                <FiMail className="text-disney-magenta w-4 h-4" />
+                <FiMail className="text-bill-primary w-4 h-4" />
                 อีเมล <span className="text-xs font-normal text-gray-500">(แสดงผลเท่านั้น)</span>
               </label>
               <div
-                className="w-full px-4 py-3 rounded-xl border-2 border-disney-magenta-light/60 bg-gray-100/80 text-gray-700 break-all"
+                className="w-full px-4 py-3 rounded-card border border-bill-border bg-gray-50 text-gray-700 break-all"
                 aria-readonly
               >
                 {email || '—'}
@@ -188,7 +188,7 @@ export default function ProfilePage() {
 
             {message && (
               <p
-                className={`text-sm ${message.type === 'ok' ? 'text-green-600' : 'text-red-600'}`}
+                className={`text-sm ${message.type === 'ok' ? 'text-green-600' : 'text-bill-danger'}`}
               >
                 {message.text}
               </p>
@@ -197,7 +197,7 @@ export default function ProfilePage() {
             <button
               type="submit"
               disabled={saving}
-              className="w-full py-3 bg-disney-magenta text-white rounded-xl font-semibold border-2 border-disney-magenta-light hover:opacity-90 disabled:opacity-50"
+              className="w-full py-3 bg-bill-primary text-white rounded-card font-semibold border border-bill-blueDark/30 hover:opacity-95 disabled:opacity-50"
             >
               {saving ? 'กำลังบันทึก...' : 'บันทึก'}
             </button>

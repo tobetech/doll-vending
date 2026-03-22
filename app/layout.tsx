@@ -1,9 +1,13 @@
 import type { Metadata, Viewport } from 'next'
-import { Inter } from 'next/font/google'
+import { Sarabun } from 'next/font/google'
 import './globals.css'
 import MobileOnlyGate from './components/MobileOnlyGate'
 
-const inter = Inter({ subsets: ['latin'] })
+const sarabun = Sarabun({
+  weight: ['400', '500', '600', '700'],
+  subsets: ['latin', 'thai'],
+  display: 'swap',
+})
 
 export const metadata: Metadata = {
   title: 'Doll Vending - แอปซื้อจากตู้กด',
@@ -21,7 +25,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: '#E91E8C',
+  themeColor: '#0059b3',
 }
 
 export default function RootLayout({
@@ -31,7 +35,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="th">
-      <body className={inter.className}>
+      <body className={sarabun.className}>
         <MobileOnlyGate>{children}</MobileOnlyGate>
       </body>
     </html>

@@ -19,9 +19,9 @@ export default function HomePage() {
   }, [router])
 
   return (
-    <div className="min-h-screen flex items-center justify-center relative">
+    <div className="min-h-screen flex items-center justify-center relative bg-white">
       <DisneyBackground />
-      <div className="animate-spin rounded-full h-12 w-12 border-4 border-disney-magenta border-t-transparent" />
+      <div className="animate-spin rounded-full h-12 w-12 border-4 border-bill-primary border-t-transparent" />
     </div>
   )
 }

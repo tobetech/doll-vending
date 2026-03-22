@@ -1,41 +1,38 @@
 'use client'
 
+/** พื้นหลังแบบแอปจ่ายบิล: ขาว + โทนน้ำเงินอ่อน + คลื่นลายนุ่ม */
 export default function DisneyBackground() {
   return (
-    <div className="fixed inset-0 -z-10 overflow-hidden">
-      {/* Base gradient - Disney magenta tone */}
+    <div className="fixed inset-0 -z-10 overflow-hidden bg-white">
       <div
-        className="absolute inset-0"
+        className="absolute inset-0 opacity-[0.35]"
         style={{
-          background: 'linear-gradient(135deg, #FFE4F0 0%, #FCE4EC 30%, #F8B4D9 60%, #E91E8C 100%)',
+          background:
+            'radial-gradient(ellipse 80% 50% at 50% -20%, rgba(26, 117, 255, 0.12), transparent 55%), radial-gradient(ellipse 60% 40% at 100% 30%, rgba(0, 89, 179, 0.08), transparent 50%), radial-gradient(ellipse 50% 35% at 0% 70%, rgba(230, 242, 255, 0.9), transparent 45%)',
         }}
       />
-      {/* Soft cartoon clouds / bubbles */}
-      <div className="absolute inset-0 opacity-40">
-        <div className="absolute top-[10%] left-[5%] w-32 h-32 rounded-full bg-white/60 blur-2xl" />
-        <div className="absolute top-[20%] right-[10%] w-40 h-40 rounded-full bg-white/50 blur-2xl" />
-        <div className="absolute bottom-[15%] left-[15%] w-36 h-36 rounded-full bg-white/50 blur-2xl" />
-        <div className="absolute bottom-[25%] right-[5%] w-28 h-28 rounded-full bg-white/60 blur-2xl" />
-        <div className="absolute top-[50%] left-[50%] w-48 h-48 rounded-full bg-white/30 blur-3xl -translate-x-1/2 -translate-y-1/2" />
-      </div>
-      {/* Cute decorative stars / sparkles */}
-      <svg className="absolute inset-0 w-full h-full overflow-hidden opacity-30" aria-hidden>
-        <defs>
-          <pattern id="stars" x="0" y="0" width="100" height="100" patternUnits="userSpaceOnUse">
-            <circle cx="10" cy="20" r="1.5" fill="#E91E8C" />
-            <circle cx="50" cy="45" r="1" fill="#FF85A2" />
-            <circle cx="80" cy="15" r="1.2" fill="#F8B4D9" />
-            <circle cx="30" cy="70" r="1" fill="#E91E8C" />
-            <circle cx="70" cy="80" r="1.5" fill="#FF69B4" />
-          </pattern>
-        </defs>
-        <rect width="100%" height="100%" fill="url(#stars)" />
+      <svg
+        className="absolute bottom-0 left-0 w-full text-bill-blueDark/10"
+        viewBox="0 0 1440 120"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        aria-hidden
+        preserveAspectRatio="none"
+        style={{ height: '7rem' }}
+      >
+        <path
+          d="M0 80L60 70C120 60 240 40 360 45C480 50 600 80 720 75C840 70 960 35 1080 40C1200 45 1320 85 1380 95L1440 100V120H0V80Z"
+          fill="currentColor"
+        />
       </svg>
-      {/* Small cartoon-style shapes */}
-      <div className="absolute top-8 right-12 text-4xl opacity-50">✨</div>
-      <div className="absolute top-24 left-8 text-3xl opacity-40">🌸</div>
-      <div className="absolute bottom-32 right-16 text-3xl opacity-40">⭐</div>
-      <div className="absolute bottom-20 left-12 text-4xl opacity-50">💖</div>
+      <div
+        className="absolute inset-0 opacity-[0.15]"
+        style={{
+          backgroundImage:
+            'radial-gradient(circle at 1px 1px, rgba(0,89,179,0.35) 1px, transparent 0)',
+          backgroundSize: '24px 24px',
+        }}
+      />
     </div>
   )
 }

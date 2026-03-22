@@ -171,31 +171,31 @@ export default function TopUpPage() {
     return (
       <div className="min-h-screen flex items-center justify-center relative">
         <DisneyBackground />
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-disney-magenta border-t-transparent" />
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-bill-primary border-t-transparent" />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen relative">
+    <div className="min-h-screen relative bg-white">
       <DisneyBackground />
-      <header className="bg-white/90 backdrop-blur border-b-2 border-disney-magenta-light relative">
+      <header className="bg-bill-primary text-white shadow-md relative">
         <div className="max-w-lg mx-auto px-4 py-3 flex items-center gap-3">
           <Link
             href="/menu"
-            className="p-2 rounded-lg hover:bg-disney-pink-pale/70 text-disney-magenta"
+            className="p-2 rounded-lg hover:bg-white/10 text-white"
           >
             <FiArrowLeft className="w-5 h-5" />
           </Link>
-          <h1 className="text-lg font-bold text-disney-magenta">เติมเงิน</h1>
+          <h1 className="text-lg font-bold">เติมเงิน</h1>
         </div>
       </header>
 
       <main className="max-w-lg mx-auto px-4 py-6 relative">
         {success && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-            <div className="bg-white rounded-2xl shadow-2xl p-8 text-center max-w-xs border-2 border-disney-magenta-light">
-              <p className="text-2xl font-bold text-disney-magenta">เติมเงินสำเร็จ</p>
+            <div className="bg-white rounded-card shadow-2xl p-8 text-center max-w-xs border border-bill-border">
+              <p className="text-2xl font-bold text-bill-primary">เติมเงินสำเร็จ</p>
               <p className="text-lg text-gray-700 mt-2">
                 {success.amount.toFixed(2)} บาท
               </p>
@@ -204,10 +204,10 @@ export default function TopUpPage() {
           </div>
         )}
 
-        <section className="bg-white/95 backdrop-blur rounded-2xl shadow-lg border-2 border-disney-magenta-light p-6">
+        <section className="bg-white rounded-card shadow-card border border-bill-border p-6">
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-12 h-12 rounded-xl bg-disney-magenta-soft flex items-center justify-center border-2 border-disney-magenta-light">
-              <FiCreditCard className="text-disney-magenta w-6 h-6" />
+            <div className="w-12 h-12 rounded-xl bg-bill-pale flex items-center justify-center border border-bill-border">
+              <FiCreditCard className="text-bill-primary w-6 h-6" />
             </div>
             <div className="flex-1">
               <h2 className="font-semibold text-gray-800">QR เติมเงินที่ตู้</h2>
@@ -218,7 +218,7 @@ export default function TopUpPage() {
           </div>
 
           {topupToken && countdownSeconds !== null && countdownSeconds > 0 && (
-            <p className="text-center text-sm text-disney-magenta font-medium mb-3">
+            <p className="text-center text-sm text-bill-primary font-semibold mb-3">
               QR หมดอายุใน {Math.floor(countdownSeconds / 60)}:
               {String(countdownSeconds % 60).padStart(2, '0')}
             </p>
@@ -229,9 +229,9 @@ export default function TopUpPage() {
             </p>
           )}
 
-          <div className="flex justify-center rounded-xl p-4 min-h-[252px] items-center border-2 border-disney-magenta-light bg-disney-pink-pale/30">
+          <div className="flex justify-center rounded-card p-4 min-h-[252px] items-center border border-bill-border bg-bill-pale/40">
             {tokenLoading && !topupToken ? (
-              <div className="flex flex-col items-center gap-2 text-disney-magenta">
+              <div className="flex flex-col items-center gap-2 text-bill-primary">
                 <FiRefreshCw className="w-8 h-8 animate-spin" />
                 <span className="text-sm">กำลังสร้าง QR...</span>
               </div>
@@ -256,7 +256,7 @@ export default function TopUpPage() {
                 <button
                   type="button"
                   onClick={() => fetchTopupToken()}
-                  className="flex items-center gap-2 px-4 py-2 bg-disney-magenta text-white rounded-xl text-sm font-medium border-2 border-disney-magenta-light"
+                  className="flex items-center gap-2 px-4 py-2 bg-bill-primary text-white rounded-card text-sm font-semibold border border-bill-blueDark/30"
                 >
                   <FiRefreshCw className="w-4 h-4" /> สร้าง QR
                 </button>

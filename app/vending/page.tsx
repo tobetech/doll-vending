@@ -297,47 +297,25 @@ export default function VendingScanPage() {
 
   if (loading || !user || creditOk !== true) {
     return (
-      <div
-        className="min-h-screen flex items-center justify-center relative"
-        style={{
-          background: 'linear-gradient(135deg, #FFE4F0 0%, #FCE4EC 40%, #F8B4D9 70%, #E91E8C 100%)',
-        }}
-      >
+      <div className="min-h-screen flex items-center justify-center relative bg-white">
         <DisneyBackground />
-        <div
-          className="animate-spin rounded-full h-12 w-12 border-4 border-t-transparent"
-          style={{ borderColor: '#E91E8C', borderTopColor: 'transparent' }}
-        />
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-bill-primary border-t-transparent" />
       </div>
     )
   }
 
   return (
-    <div
-      className="min-h-screen relative"
-      style={{
-        background: 'linear-gradient(135deg, #FFE4F0 0%, #FCE4EC 40%, #F8B4D9 70%, #E91E8C 100%)',
-      }}
-    >
+    <div className="min-h-screen relative bg-white">
       <DisneyBackground />
-      <header
-        className="backdrop-blur relative border-b-2"
-        style={{
-          background: 'rgba(255,255,255,0.9)',
-          borderColor: '#F8B4D9',
-        }}
-      >
+      <header className="bg-bill-primary text-white shadow-md relative">
         <div className="max-w-lg mx-auto px-4 py-3 flex items-center gap-3">
           <Link
             href="/menu"
-            className="p-2 rounded-lg hover:opacity-80 transition"
-            style={{ color: '#E91E8C' }}
+            className="p-2 rounded-lg hover:bg-white/10 transition text-white"
           >
             <FiArrowLeft className="w-5 h-5" />
           </Link>
-          <h1 className="text-lg font-bold" style={{ color: '#E91E8C' }}>
-            สแกน QR Code ซื้อของ
-          </h1>
+          <h1 className="text-lg font-bold">สแกน QR Code ซื้อของ</h1>
         </div>
       </header>
 
@@ -346,11 +324,9 @@ export default function VendingScanPage() {
         {webhookResult && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
             <div
-              className="bg-white rounded-2xl shadow-2xl p-8 text-center max-w-xs border-2"
-              style={{
-                borderColor: '#F8B4D9',
-                color: webhookResult === 'success' ? '#E91E8C' : '#ef4444',
-              }}
+              className={`bg-white rounded-card shadow-2xl p-8 text-center max-w-xs border ${
+                webhookResult === 'success' ? 'border-bill-border text-bill-primary' : 'border-red-200 text-red-600'
+              }`}
             >
               <p className="text-2xl font-bold">
                 {webhookResult === 'success' ? 'สำเร็จ' : 'ล้มเหลว'}
@@ -365,7 +341,7 @@ export default function VendingScanPage() {
                   ) : null}
                   <p>
                     <span className="text-gray-500">หักจากยอดเงิน:</span>{' '}
-                    <span className="font-semibold text-disney-magenta">
+                    <span className="font-semibold text-bill-blue">
                       {new Intl.NumberFormat('th-TH', {
                         style: 'currency',
                         currency: 'THB',
@@ -375,7 +351,7 @@ export default function VendingScanPage() {
                   {successSummary.newCredit != null ? (
                     <p>
                       <span className="text-gray-500">ยอดเงินคงเหลือ:</span>{' '}
-                      <span className="font-semibold text-disney-magenta">
+                      <span className="font-semibold text-bill-blue">
                         {new Intl.NumberFormat('th-TH', {
                           style: 'currency',
                           currency: 'THB',
@@ -392,33 +368,21 @@ export default function VendingScanPage() {
           </div>
         )}
 
-        <section
-          className="backdrop-blur rounded-2xl shadow-lg border-2 p-6 relative"
-          style={{
-            background: 'rgba(255,255,255,0.95)',
-            borderColor: '#F8B4D9',
-          }}
-        >
-          <div className="flex items-center gap-3 mb-4">
-            <div
-              className="w-10 h-10 rounded-full flex items-center justify-center border-2"
-              style={{ background: '#FCE4EC', borderColor: '#F8B4D9' }}
-            >
-              <FiUser className="w-5 h-5" style={{ color: '#E91E8C' }} />
+        <section className="bg-white rounded-card shadow-card border border-bill-border p-6 relative overflow-hidden">
+          <div className="bg-bill-pale -mx-6 -mt-6 px-6 py-3 mb-4 border-b border-bill-border flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full flex items-center justify-center border border-bill-border bg-white text-bill-primary">
+              <FiUser className="w-5 h-5" />
             </div>
             <div className="flex-1">
               <h2 className="font-semibold text-gray-800">QR ประจำตัว (Dynamic)</h2>
               <p className="text-sm text-gray-500">แสดง QR ที่ตู้กด ใช้ได้ครั้งเดียว</p>
             </div>
-            <FiShield className="w-5 h-5" style={{ color: '#E91E8C' }} />
+            <FiShield className="w-5 h-5 text-bill-primary" />
           </div>
 
-          <div
-            className="flex justify-center rounded-xl p-4 min-h-[252px] items-center border-2"
-            style={{ background: 'rgba(255,228,240,0.5)', borderColor: '#F8B4D9' }}
-          >
+          <div className="flex justify-center rounded-card p-4 min-h-[252px] items-center border border-bill-border bg-bill-pale/40">
             {qrTokenLoading && !qrToken ? (
-              <div className="flex flex-col items-center gap-2" style={{ color: '#E91E8C' }}>
+              <div className="flex flex-col items-center gap-2 text-bill-primary">
                 <FiRefreshCw className="w-8 h-8 animate-spin" />
                 <span className="text-sm">กำลังสร้าง QR...</span>
               </div>
@@ -449,8 +413,7 @@ export default function VendingScanPage() {
                 <button
                   type="button"
                   onClick={() => fetchQrToken()}
-                  className="flex items-center gap-2 px-4 py-2 text-white rounded-xl text-sm font-medium hover:opacity-90 border-2"
-                  style={{ background: '#E91E8C', borderColor: '#F8B4D9' }}
+                  className="flex items-center gap-2 px-4 py-2 text-white rounded-card text-sm font-semibold hover:opacity-95 border border-bill-blueDark/40 bg-bill-primary"
                 >
                   <FiRefreshCw className="w-4 h-4" /> ลองใหม่
                 </button>
@@ -462,7 +425,7 @@ export default function VendingScanPage() {
           {countdownSeconds !== null && countdownSeconds > 0 && !webhookResult && (
             <div className="mt-4 text-center">
               <p className="text-sm text-gray-600">QR หมดอายุใน</p>
-              <p className="text-2xl font-bold tabular-nums" style={{ color: '#E91E8C' }}>
+              <p className="text-2xl font-bold tabular-nums text-bill-primary">
                 {Math.floor(countdownSeconds / 60)}:{(countdownSeconds % 60).toString().padStart(2, '0')}
               </p>
               <p className="text-xs text-gray-500 mt-1">หมดเวลาจะกลับหน้าเมนูอัตโนมัติ</p>

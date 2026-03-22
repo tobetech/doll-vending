@@ -187,7 +187,7 @@ export default function MenuPage() {
     return (
       <div className="min-h-screen flex items-center justify-center relative">
         <DisneyBackground />
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-disney-magenta border-t-transparent" />
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-bill-primary border-t-transparent" />
       </div>
     )
   }
@@ -201,47 +201,61 @@ export default function MenuPage() {
   ]
 
   return (
-    <div className="min-h-screen relative">
+    <div className="min-h-screen relative bg-white">
       <DisneyBackground />
-      <header className="bg-white/90 backdrop-blur border-b-2 border-disney-magenta-light relative">
+      <header className="bg-bill-primary text-white shadow-md relative">
         <div className="max-w-lg mx-auto px-4 py-4">
-          <h1 className="text-xl font-bold text-disney-magenta">Doll Vending</h1>
+          <h1 className="text-xl font-bold tracking-tight">Doll Vending</h1>
+          <p className="text-sm text-white/85 mt-0.5">แอปซื้อจากตู้กด</p>
         </div>
       </header>
 
-      <main className="max-w-lg mx-auto px-4 py-6 space-y-6 relative">
-        {/* ยอดเงินคงเหลือ และคะแนนสะสม */}
-        <section className="bg-white/95 backdrop-blur rounded-2xl shadow-lg border-2 border-disney-magenta-light p-5">
-          <div className="bg-disney-pink-pale/80 rounded-xl px-4 py-3 mb-4 border border-disney-magenta-light">
+      <main className="max-w-lg mx-auto px-4 py-6 space-y-5 relative">
+        {/* ข้อมูลผู้ใช้ + ยอดเงิน (การ์ด gradient) + คะแนน */}
+        <section className="rounded-card shadow-card border border-bill-border overflow-hidden bg-white">
+          <div className="bg-bill-pale px-4 py-3 border-b border-bill-border">
             <p className="text-xs text-gray-500 mb-0.5">ชื่อผู้ใช้ / อีเมล</p>
             <p className="text-gray-800 font-semibold break-all">{displayName || 'กำลังโหลด...'}</p>
           </div>
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-full bg-disney-magenta-soft flex items-center justify-center text-disney-magenta text-xl border-2 border-disney-magenta-light">
-              {FiDollarSign ? <FiDollarSign className="w-5 h-5" /> : <span>฿</span>}
+          <div className="bill-balance-gradient px-5 py-6 relative overflow-hidden">
+            <div
+              className="absolute inset-0 opacity-20 pointer-events-none"
+              style={{
+                backgroundImage:
+                  'url("data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cpath d=\'M30 5c10 8 18 18 20 30-8-6-18-10-30-10S8 29 0 35c2-12 10-22 20-30z\' fill=\'%23fff\'/%3E%3C/svg%3E")',
+                backgroundSize: '48px 48px',
+              }}
+            />
+            <div className="relative flex items-start gap-3">
+              <div className="w-11 h-11 rounded-full bg-white/20 flex items-center justify-center text-white border border-white/30">
+                <FiDollarSign className="w-6 h-6" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm text-white/90 font-medium">ยอดเงินคงเหลือ</p>
+                <p className="text-2xl sm:text-3xl font-bold text-bill-gold mt-1 tabular-nums">
+                  {formatCurrency(balance)}
+                </p>
+                <span className="inline-block mt-3 text-xs font-medium text-white/95 bg-white/15 rounded-full px-3 py-1 border border-white/20">
+                  คะแนนสะสม {points} แต้ม
+                </span>
+              </div>
             </div>
-            <h2 className="font-semibold text-gray-800">ยอดเงินคงเหลือ และคะแนนสะสม</h2>
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-disney-pink-pale/70 rounded-xl p-4 text-center border-2 border-disney-magenta-light">
-              <p className="text-xs text-gray-600 mb-1">ยอดเงินคงเหลือ</p>
-              <p className="text-xl font-bold text-disney-magenta">{formatCurrency(balance)}</p>
-            </div>
-            <div className="bg-disney-magenta-soft rounded-xl p-4 text-center border-2 border-disney-magenta-light">
-              <p className="text-xs text-gray-600 mb-1">คะแนนสะสม</p>
-              <p className="text-xl font-bold text-disney-rose">{points} คะแนน</p>
-            </div>
+          <div className="px-4 py-3 bg-white border-t border-bill-border flex items-center justify-between">
+            <span className="text-sm text-gray-600">คะแนนที่ใช้แลกของรางวัล</span>
+            <span className="text-lg font-bold text-bill-blue">{points}</span>
           </div>
         </section>
 
         {/* เมนู */}
         <section className="space-y-3">
-          <div className="mb-3">
+          <div className="mb-1 px-0.5">
             <h2 className="font-semibold text-gray-800">เมนู</h2>
           </div>
           {menuItems.map((item) => {
             const Icon = item.Icon
-            const className = 'flex items-center gap-4 bg-white/95 backdrop-blur rounded-xl shadow border-2 border-disney-magenta-light p-4 hover:bg-disney-pink-pale/50 transition w-full text-left'
+            const className =
+              'flex items-center gap-4 bg-white rounded-card shadow-card border border-bill-border p-4 hover:bg-bill-pale/60 transition w-full text-left active:scale-[0.99]'
             if (item.needCreditCheck) {
               return (
                 <button
@@ -251,14 +265,14 @@ export default function MenuPage() {
                   disabled={vendingCheckLoading}
                   className={className}
                 >
-                  <div className="w-12 h-12 rounded-xl bg-disney-magenta-soft flex items-center justify-center text-disney-magenta text-2xl border-2 border-disney-magenta-light">
+                  <div className="w-12 h-12 rounded-xl bg-bill-pale flex items-center justify-center text-bill-primary text-2xl border border-bill-border">
                     {Icon ? <Icon className="w-6 h-6" /> : <span>•</span>}
                   </div>
                   <div className="flex-1">
                     <p className="font-medium text-gray-800">{item.label}</p>
                     <p className="text-sm text-gray-500">{item.desc}</p>
                   </div>
-                  <span className="text-gray-400">›</span>
+                  <span className="text-bill-blue/50 font-light text-xl">›</span>
                 </button>
               )
             }
@@ -268,14 +282,14 @@ export default function MenuPage() {
                 href={item.href}
                 className={className}
               >
-                <div className="w-12 h-12 rounded-xl bg-disney-magenta-soft flex items-center justify-center text-disney-magenta text-2xl border-2 border-disney-magenta-light">
+                <div className="w-12 h-12 rounded-xl bg-bill-pale flex items-center justify-center text-bill-primary text-2xl border border-bill-border">
                   {Icon ? <Icon className="w-6 h-6" /> : <span>•</span>}
                 </div>
                 <div className="flex-1">
                   <p className="font-medium text-gray-800">{item.label}</p>
                   <p className="text-sm text-gray-500">{item.desc}</p>
                 </div>
-                <span className="text-gray-400">›</span>
+                <span className="text-bill-blue/50 font-light text-xl">›</span>
               </Link>
             )
           })}
@@ -284,12 +298,12 @@ export default function MenuPage() {
         {/* Popup ยอดเงินไม่เพียงพอ */}
         {showInsufficientPopup && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-            <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-xs w-full border-2 border-disney-magenta-light text-center">
+            <div className="bg-white rounded-card shadow-2xl p-6 max-w-xs w-full border border-bill-border text-center">
               <p className="text-gray-800 font-medium">จำนวนเงินไม่เพียงพอ กรุณาเติมเงิน</p>
               <button
                 type="button"
                 onClick={() => setShowInsufficientPopup(false)}
-                className="mt-4 w-full py-2.5 bg-disney-magenta text-white rounded-xl font-medium hover:opacity-90"
+                className="mt-4 w-full py-3 bg-bill-primary text-white rounded-card font-semibold hover:opacity-95"
               >
                 ตกลง
               </button>
@@ -300,7 +314,7 @@ export default function MenuPage() {
         {/* Log out */}
         <button
           onClick={handleLogout}
-          className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-disney-magenta-light text-disney-magenta font-medium hover:bg-disney-pink-pale/50 transition bg-white/80"
+          className="w-full flex items-center justify-center gap-2 py-3 rounded-card border border-bill-border text-bill-primary font-medium hover:bg-bill-pale/80 transition bg-white shadow-sm"
         >
           {FiLogOut ? <FiLogOut className="w-5 h-5" /> : <span>⎋</span>}
           ออกจากระบบ (Log out)
