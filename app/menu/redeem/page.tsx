@@ -32,18 +32,42 @@ export default function RedeemPage() {
 
   useEffect(() => {
     if (!user?.id) return
+    const uid = user.id
     const hang = setTimeout(() => setLoading(false), 15_000)
     void Promise.resolve(
-      supabase.from('vending_member').select('point').eq('id', user.id).maybeSingle()
+      supabase.from('vending_member').select('point').eq('id', uid).maybeSingle()
     )
       .then(({ data }) => {
-        setPoints(Number(data?.point) ?? 0)
+        const pt = data?.point != null && data.point !== '' ? Number(data.point) : 0
+        setPoints(Number.isFinite(pt) ? pt : 0)
       })
       .catch(() => {})
       .finally(() => {
         clearTimeout(hang)
         setLoading(false)
       })
+    const channel = supabase
+      .channel(`redeem_member_${uid}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'vending_member',
+          filter: `id=eq.${uid}`,
+        },
+        (payload) => {
+          const row = payload.new as { point?: unknown } | null
+          const pt = row?.point != null && row.point !== '' ? Number(row.point) : 0
+          setPoints(Number.isFinite(pt) ? pt : 0)
+        }
+      )
+      .subscribe()
+
+    return () => {
+      clearTimeout(hang)
+      supabase.removeChannel(channel)
+    }
   }, [user?.id])
 
   if (loading || !user) {

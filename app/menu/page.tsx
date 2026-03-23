@@ -100,7 +100,8 @@ export default function MenuPage() {
       const bal =
         cred != null && cred !== '' ? Number(cred) : 0
       setBalance(Number.isFinite(bal) ? bal : 0)
-      setPoints(Number(data.point) ?? 0)
+      const pt = data.point != null && data.point !== '' ? Number(data.point) : 0
+      setPoints(Number.isFinite(pt) ? pt : 0)
       const un = String(data.user_name ?? '').trim()
       if (un) setDisplayName(un)
       else if (data.email) setDisplayName(String(data.email))

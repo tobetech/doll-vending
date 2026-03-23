@@ -32,22 +32,11 @@ function readNonEmptyString(v: unknown): string | undefined {
   return s.length ? s : undefined
 }
 
-/** ดึงยอดหักจากหลายชื่อฟิลด์ที่ตู้อาจส่ง (ถ้าไม่มีหรือไม่ใช่ตัวเลขจะได้ 0 = ไม่หัก credit) */
-function parseDeductAmount(body: Record<string, unknown>): number {
-  const keys = [
-    'amount',
-    'deduct',
-    'deduction',
-    'price',
-    'total',
-    'cost',
-    'baht',
-    'value',
-    'pay',
-    'paid',
-    'money',
-    'charge',
-  ]
+/** ดึงตัวเลข non-negative จากหลายชื่อฟิลด์ที่อาจถูกส่งมา */
+function parseNonNegativeAmount(
+  body: Record<string, unknown>,
+  keys: string[]
+): number {
   for (const key of keys) {
     const v = body[key]
     if (v == null || v === '') continue
@@ -62,12 +51,43 @@ function parseDeductAmount(body: Record<string, unknown>): number {
   return 0
 }
 
+/** ดึงยอดหักจากหลายชื่อฟิลด์ที่ตู้อาจส่ง (ถ้าไม่มีหรือไม่ใช่ตัวเลขจะได้ 0 = ไม่หัก credit) */
+function parseDeductAmount(body: Record<string, unknown>): number {
+  return parseNonNegativeAmount(body, [
+    'amount',
+    'deduct',
+    'deduction',
+    'price',
+    'total',
+    'cost',
+    'baht',
+    'value',
+    'pay',
+    'paid',
+    'money',
+    'charge',
+  ])
+}
+
+/** แต้มที่จะบวกเพิ่มจาก webhook (รองรับ refund/refund_point/points/point) */
+function parseRefundPoint(body: Record<string, unknown>): number {
+  return parseNonNegativeAmount(body, [
+    'refund',
+    'refund_point',
+    'refund_points',
+    'point_refund',
+    'points',
+    'point',
+  ])
+}
+
 function parseVendingWebhook(raw: unknown): {
   userId: string
   machineId: string
   productId: string
   productName: string
   amount: number
+  refundPoint: number
   transactionId?: string
 } {
   const b = normalizeBodyKeys(raw)
@@ -84,12 +104,14 @@ function parseVendingWebhook(raw: unknown): {
   const productName = readNonEmptyString(b.product_name) ?? ''
   const transactionId = readNonEmptyString(b.transaction_id) ?? readNonEmptyString(b.transactionid)
   const amount = parseDeductAmount(b)
+  const refundPoint = parseRefundPoint(b)
   return {
     userId: userId ?? '',
     machineId: machineId ?? '',
     productId,
     productName,
     amount,
+    refundPoint,
     transactionId,
   }
 }
@@ -103,6 +125,7 @@ export async function POST(request: NextRequest) {
       productId,
       productName,
       amount,
+      refundPoint,
       transactionId,
     } = parseVendingWebhook(raw)
 
@@ -134,7 +157,7 @@ export async function POST(request: NextRequest) {
 
     const { data: member, error: memErr } = await supabase
       .from('vending_member')
-      .select('credit')
+      .select('credit, point')
       .eq('id', userId)
       .maybeSingle()
 
@@ -149,7 +172,9 @@ export async function POST(request: NextRequest) {
     const currentCredit = roundMoney(
       member?.credit != null ? Number(member.credit) : 0
     )
+    const currentPoint = member?.point != null ? Number(member.point) : 0
     const amtRounded = roundMoney(amt)
+    const refundRounded = Math.max(0, Math.round(refundPoint))
 
     if (amtRounded > 0 && currentCredit < amtRounded) {
       return NextResponse.json(
@@ -166,12 +191,13 @@ export async function POST(request: NextRequest) {
 
     // ยอดใหม่ = credit ปัจจุบัน − amount จาก webhook (เช่น 500 − 10 = 490)
     const newCredit = roundMoney(currentCredit - amtRounded)
+    const newPoint = Math.max(0, currentPoint + refundRounded)
 
     const { data: updatedMember, error: upErr } = await supabase
       .from('vending_member')
-      .update({ credit: newCredit })
+      .update({ credit: newCredit, point: newPoint })
       .eq('id', userId)
-      .select('credit')
+      .select('credit, point')
       .maybeSingle()
 
     if (upErr) {
@@ -186,7 +212,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           ok: false,
-          error: 'Member not found or credit could not be updated',
+          error: 'Member not found or credit/point could not be updated',
           code: 'member_update_failed',
         },
         { status: 404 }
@@ -194,6 +220,8 @@ export async function POST(request: NextRequest) {
     }
 
     const confirmedCredit = roundMoney(Number(updatedMember.credit))
+    const confirmedPoint =
+      updatedMember.point != null ? Number(updatedMember.point) : newPoint
 
     const baseInsert: Record<string, unknown> = {
       user_id: userId,
@@ -226,7 +254,7 @@ export async function POST(request: NextRequest) {
       console.error('Webhook vending insert error:', error)
       await supabase
         .from('vending_member')
-        .update({ credit: currentCredit })
+        .update({ credit: currentCredit, point: currentPoint })
         .eq('id', userId)
       return NextResponse.json(
         { ok: false, error: error.message },
@@ -239,7 +267,9 @@ export async function POST(request: NextRequest) {
       transactionId: row?.id,
       createdAt: row?.created_at,
       newCredit: confirmedCredit,
+      newPoint: confirmedPoint,
       deducted: amtRounded,
+      refunded: refundRounded,
     })
   } catch (e) {
     console.error('Webhook vending error:', e)
