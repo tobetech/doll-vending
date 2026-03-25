@@ -18,7 +18,7 @@ import {
 import { useWallClockCountdown } from '@/lib/use-wall-clock-countdown'
 
 const API_BASE = typeof window !== 'undefined' ? window.location.origin : ''
-const COUNTDOWN_SECONDS = 90 // 1:30 นาที
+const COUNTDOWN_SECONDS = 300 // 5 นาที (สอดคล้องกับอายุ token ฝั่ง API)
 const COUNTDOWN_REDIRECT_AFTER_MS = 1500
 const WEBHOOK_RESULT_SHOW_MS = 2500
 /** ตรงกับฝั่ง API qr-token / validate */
@@ -280,6 +280,11 @@ export default function VendingScanPage() {
               productName: row?.product_name || undefined,
               newCredit,
             })
+          } else {
+            setSuccessSummary({
+              amount: Number(row?.amount) || 0,
+              productName: row?.product_name || undefined,
+            })
           }
           setWebhookResult(status)
           setTimeout(() => router.replace('/menu'), WEBHOOK_RESULT_SHOW_MS)
@@ -306,12 +311,12 @@ export default function VendingScanPage() {
         .maybeSingle()
       if (data) {
         const status = data.status === 'success' ? 'success' : 'failed'
+        const d = data as {
+          amount?: unknown
+          product_name?: string
+          credit_after?: unknown
+        }
         if (status === 'success') {
-          const d = data as {
-            amount?: unknown
-            product_name?: string
-            credit_after?: unknown
-          }
           const ca = d.credit_after
           const newCredit =
             ca != null && ca !== '' && Number.isFinite(Number(ca))
@@ -321,6 +326,11 @@ export default function VendingScanPage() {
             amount: Number(d.amount) || 0,
             productName: d.product_name || undefined,
             newCredit,
+          })
+        } else {
+          setSuccessSummary({
+            amount: Number(d.amount) || 0,
+            productName: d.product_name || undefined,
           })
         }
         setWebhookResult(status)
@@ -371,7 +381,9 @@ export default function VendingScanPage() {
               }`}
             >
               <p className="text-2xl font-bold">
-                {webhookResult === 'success' ? 'สำเร็จ' : 'ล้มเหลว'}
+                {webhookResult === 'success'
+                  ? 'สำเร็จ'
+                  : 'เกิดข้อผิดพลาด (Error)'}
               </p>
               {webhookResult === 'success' && successSummary && (
                 <div className="mt-3 text-left text-sm text-gray-700 space-y-1">

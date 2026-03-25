@@ -6,7 +6,7 @@ import {
   nextMisconfiguredSimple,
 } from '@/lib/supabase-env-error'
 
-const TOKEN_VALID_MINUTES = 2
+const TOKEN_VALID_MINUTES = 5
 
 /** สร้างโทเค็นเติมเงิน → บันทึกใน vending_topup_token (รอตู้สแกน) */
 export async function POST(request: NextRequest) {

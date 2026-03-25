@@ -6,7 +6,7 @@ import {
   nextMisconfiguredSimple,
 } from '@/lib/supabase-env-error'
 
-const TOKEN_VALID_MINUTES = 3
+const TOKEN_VALID_MINUTES = 5
 /** ราคาต่อชิ้น (บาท) — ขั้นต่ำ 1 ชิ้น = 10 บาท; จำนวนสูงสุด = floor(credit/10) ชิ้น */
 const PRICE_PER_UNIT = 10
 const MIN_QUANTITY = 1
@@ -17,7 +17,7 @@ function roundMoney(n: number): number {
 
 /**
  * สร้างโทเค็นสำหรับ Dynamic QR (ต้องส่ง Authorization: Bearer <access_token>)
- * โทเค็นหมดอายุใน 3 นาที และใช้ได้ครั้งเดียวเมื่อตู้กดเรียก validate
+ * โทเค็นหมดอายุใน 5 นาที และใช้ได้ครั้งเดียวเมื่อตู้กดเรียก validate
  *
  * Body: { refresh_token?, amount } — amount = ยอดเงินรวม (จำนวนชิ้น × 10) ต้องตรงกับที่ส่ง validate
  */

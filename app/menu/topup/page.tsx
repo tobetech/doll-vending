@@ -17,7 +17,7 @@ import {
 import { useWallClockCountdown } from '@/lib/use-wall-clock-countdown'
 
 const API_BASE = typeof window !== 'undefined' ? window.location.origin : ''
-const COUNTDOWN_SECONDS = 120 // 2 นาที (สอดคล้องกับ token ฝั่ง API)
+const COUNTDOWN_SECONDS = 300 // 5 นาที (สอดคล้องกับ token ฝั่ง API)
 const COUNTDOWN_REDIRECT_AFTER_MS = 2000
 const SUCCESS_SHOW_MS = 2500
 

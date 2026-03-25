@@ -6,7 +6,7 @@
 
 ## ภาพรวม Flow
 
-1. ลูกค้าเปิดแอป → เข้าหน้า **สแกน QR** → แอปแสดง **QR Code** (ภายในมี **token** ใช้ได้ครั้งเดียว มีอายุประมาณ 3 นาที)
+1. ลูกค้าเปิดแอป → เข้าหน้า **สแกน QR** → แอปแสดง **QR Code** (ภายในมี **token** ใช้ได้ครั้งเดียว มีอายุประมาณ 5 นาที)
 2. ลูกค้านำมือถือไป **สแกนที่ตู้กด**
 3. **ตู้กด** อ่าน QR → เรียก API **Validate** ด้วย token → ได้ **userId**
 4. ตู้กดทำรายการ (ตรวจสอบยอด/หักเงิน ถ้ามีระบบ) → จ่ายสินค้า
@@ -27,7 +27,7 @@
     "amount": 150
   }
   ```
-  - `token` = UUID ใช้ได้**ครั้งเดียว** และมีอายุประมาณ **3 นาที**
+  - `token` = UUID ใช้ได้**ครั้งเดียว** และมีอายุประมาณ **5 นาที**
   - `amount` = ยอดเงินรวมที่ลูกค้ายืนยัน (บาท) — จำนวนชิ้น × ราคาต่อชิ้น (แอปใช้ 10 บาท/ชิ้น) เพื่อให้ตู้ทราบยอดสั่งซื้อ และต้องส่งค่าเดียวกันไปที่ **Validate** และใช้เป็นยอดหักใน **Webhook**
 
 ---
@@ -71,8 +71,37 @@
 }
 ```
 
-- ถ้าได้ **success: true** → ใช้ค่า **userId** เก็บไว้สำหรับขั้นตอนส่ง Webhook
-- ถ้าได้ **success: false** → แสดงข้อความว่า QR หมดอายุหรือใช้แล้ว แนะนำให้ลูกค้าอัปเดต QR ในแอป
+- ถ้าได้ **success: true** → ใช้ค่า **userId** เก็บไว้สำหรับขั้นตอนส่ง Webhook ซื้อสำเร็จ
+- ถ้าได้ **success: false** (status ไม่ใช่ 200 เช่น 400/404/500) → ตู้ควรเรียก **Webhook แจ้งความผิดพลาด** (ขั้นที่ 2b) เพื่อให้แอปบนมือถือแสดงข้อความ **เกิดข้อผิดพลาด (Error)** — ลูกค้าไม่ต้องเดาว่า QR ยังรออยู่
+
+#### ขั้นที่ 2b: Validate ไม่สำเร็จ — แจ้งแอป (Webhook)
+
+**เรียก API:**
+
+- **Method:** `POST`
+- **URL:** `https://<โดเมนแอป>/api/webhook/vending-validate-error`
+- **Headers:** `Content-Type: application/json`
+- **Body (JSON):**
+  ```json
+  {
+    "token": "uuid เดียวกับที่อ่านจาก QR",
+    "machineId": "machine-01"
+  }
+  ```
+  - **token (บังคับ)** — ใช้ค้นหา `user_id` ในระบบเพื่อบันทึกรายการให้ user ที่กำลังแสดง QR รับผ่าน Realtime
+  - **machineId** — รหัสตู้ (ไม่ส่งได้ จะใช้ค่า `unknown-machine`)
+
+**Response สำเร็จ (200):**
+```json
+{
+  "ok": true,
+  "transactionId": "uuid-ของแถว-vending_transactions",
+  "createdAt": "...",
+  "userId": "uuid-of-user"
+}
+```
+
+**ถ้าไม่พบ token ในฐานข้อมูล (404):** ระบบแจ้ง user บนมือถือไม่ได้ — ใช้เมื่อ token ผิดหรือไม่เคยออกจากแอป
 
 ---
 
@@ -156,10 +185,11 @@
 | ลำดับ | วัตถุประสงค์ | Method | URL | Body หลัก |
 |--------|----------------|--------|-----|-----------|
 | 1 | ตรวจสอบ QR และรับ userId | POST | `/api/vending/validate` | `{ "token": "...", "amount": 150 }` (ยอดจาก QR) |
+| 1b | Validate ไม่สำเร็จ → ให้แอปแสดง Error | POST | `/api/webhook/vending-validate-error` | `{ "token": "...", "machineId": "..." }` |
 | 2 | แจ้งผลรายการสำเร็จ | POST | `/api/webhook/vending` | `{ "userId": "...", "machineId": "..." }` |
 
 - โดเมนใช้ตามที่ deploy แอป (เช่น `https://your-app.vercel.app`)
-- ทั้งสอง API ไม่ต้องส่ง Authorization (เป็นแบบ server-to-server)
+- API เหล่านี้ไม่ต้องส่ง Authorization (เป็นแบบ server-to-server)
 
 ---
 
@@ -187,7 +217,10 @@
        ↓
 POST /api/vending/validate { "token": "...", "amount": ... }
        ↓
-ได้ userId → ตู้ทำรายการ (จ่ายสินค้า)
+   ไม่สำเร็จ → POST /api/webhook/vending-validate-error { "token": "..." }
+               → แอปแสดง "เกิดข้อผิดพลาด (Error)" แล้วกลับเมนู
+       ↓
+   สำเร็จ → ได้ userId → ตู้ทำรายการ (จ่ายสินค้า)
        ↓
 POST /api/webhook/vending { "userId": "...", "machineId": "..." }
        ↓
