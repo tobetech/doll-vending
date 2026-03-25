@@ -7,9 +7,9 @@ import {
 } from '@/lib/supabase-env-error'
 
 const TOKEN_VALID_MINUTES = 3
-/** ราคาต่อชิ้น (บาท) — ขั้นต่ำ 10 ชิ้น = 100 บาท; จำนวนสูงสุด = floor(credit/10) ชิ้น */
+/** ราคาต่อชิ้น (บาท) — ขั้นต่ำ 1 ชิ้น = 10 บาท; จำนวนสูงสุด = floor(credit/10) ชิ้น */
 const PRICE_PER_UNIT = 10
-const MIN_QUANTITY = 10
+const MIN_QUANTITY = 1
 
 function roundMoney(n: number): number {
   return Math.round((n + Number.EPSILON) * 100) / 100
@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
     if (maxQty < MIN_QUANTITY) {
       return NextResponse.json(
         {
-          error: 'Insufficient credit for minimum order (need at least 100 THB for 10 items)',
+          error: 'Insufficient credit for minimum order (need at least 10 THB for 1 item)',
           code: 'insufficient_for_minimum',
           credit,
           minAmount,

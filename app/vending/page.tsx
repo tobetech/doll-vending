@@ -23,7 +23,7 @@ const COUNTDOWN_REDIRECT_AFTER_MS = 1500
 const WEBHOOK_RESULT_SHOW_MS = 2500
 /** ตรงกับฝั่ง API qr-token / validate */
 const PRICE_PER_UNIT = 10
-const MIN_QUANTITY = 10
+const MIN_QUANTITY = 1
 
 function roundMoney(n: number): number {
   return Math.round((n + Number.EPSILON) * 100) / 100
@@ -34,6 +34,8 @@ export default function VendingScanPage() {
   const [user, setUser] = useState<{ id: string } | null>(null)
   const [loading, setLoading] = useState(true)
   const [qrToken, setQrToken] = useState<string | null>(null)
+  /** ยอดเงินรวม (บาท) ที่ล็อกกับ token — ใส่ใน QR เป็น field `amount` ให้ตู้อ่านได้ */
+  const [qrLockedAmount, setQrLockedAmount] = useState<number | null>(null)
   const [qrExpiresAt, setQrExpiresAt] = useState<string | null>(null)
   const [qrTokenLoading, setQrTokenLoading] = useState(false)
   const [qrError, setQrError] = useState<string | null>(null)
@@ -48,8 +50,8 @@ export default function VendingScanPage() {
   const [testWebhookError, setTestWebhookError] = useState<string | null>(null)
   const [creditOk, setCreditOk] = useState<boolean | null>(null)
   const [memberCredit, setMemberCredit] = useState<number>(0)
-  const [maxQuantity, setMaxQuantity] = useState(10)
-  const [quantity, setQuantity] = useState(10)
+  const [maxQuantity, setMaxQuantity] = useState(1)
+  const [quantity, setQuantity] = useState(1)
   const scanStartedAtRef = useRef<number | null>(null)
   const redirectingRef = useRef(false)
   const qrFetchSeqRef = useRef(0)
@@ -130,15 +132,22 @@ export default function VendingScanPage() {
       if (seq !== qrFetchSeqRef.current) return
       if (!res.ok) {
         setQrToken(null)
+        setQrLockedAmount(null)
         setQrExpiresAt(null)
         setQrError(json.error || `โหลดไม่สำเร็จ (${res.status})`)
         return
       }
+      const locked =
+        json.amount != null && Number.isFinite(Number(json.amount))
+          ? roundMoney(Number(json.amount))
+          : roundMoney(purchaseAmount)
+      setQrLockedAmount(locked)
       setQrToken(json.token)
       setQrExpiresAt(json.expiresAt ?? null)
     } catch (e) {
       if (seq !== qrFetchSeqRef.current) return
       setQrToken(null)
+      setQrLockedAmount(null)
       setQrExpiresAt(null)
       setQrError('เกิดข้อผิดพลาดในการเชื่อมต่อ')
     } finally {
@@ -197,7 +206,7 @@ export default function VendingScanPage() {
         if (redirectingRef.current) return
         setMemberCredit(credit)
         setMaxQuantity(maxQ)
-        setQuantity(maxQ)
+        setQuantity(1)
         setCreditOk(true)
       })
       .catch(() => {
@@ -212,6 +221,7 @@ export default function VendingScanPage() {
 
   const clearQr = useCallback(() => {
     setQrToken(null)
+    setQrLockedAmount(null)
     setQrExpiresAt(null)
     setQrError(null)
   }, [])
@@ -322,7 +332,10 @@ export default function VendingScanPage() {
     return () => clearInterval(t)
   }, [user?.id, qrToken, webhookResult])
 
-  const qrString = qrToken ? JSON.stringify({ token: qrToken }) : ''
+  const qrString =
+    qrToken && qrLockedAmount != null
+      ? JSON.stringify({ token: qrToken, amount: qrLockedAmount })
+      : ''
 
   if (loading || !user || creditOk !== true) {
     return (

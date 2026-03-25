@@ -22,9 +22,13 @@
 - ตู้กดใช้ **QR Scanner** อ่านค่า
 - ข้อมูลใน QR เป็น **JSON** รูปแบบ:
   ```json
-  { "token": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" }
+  {
+    "token": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+    "amount": 150
+  }
   ```
   - `token` = UUID ใช้ได้**ครั้งเดียว** และมีอายุประมาณ **3 นาที**
+  - `amount` = ยอดเงินรวมที่ลูกค้ายืนยัน (บาท) — จำนวนชิ้น × ราคาต่อชิ้น (แอปใช้ 10 บาท/ชิ้น) เพื่อให้ตู้ทราบยอดสั่งซื้อ และต้องส่งค่าเดียวกันไปที่ **Validate** และใช้เป็นยอดหักใน **Webhook**
 
 ---
 
@@ -39,17 +43,25 @@
 - **Headers:** `Content-Type: application/json`
 - **Body (JSON):**
   ```json
-  { "token": "ค่า token ที่ได้จาก QR" }
+  {
+    "token": "ค่า token ที่ได้จาก QR",
+    "amount": 150
+  }
   ```
+  - token ที่ล็อกยอดไว้: **ต้อง** ส่ง `amount` ให้ตรงกับใน QR — ไม่ตรงจะได้ **400** พร้อม `expectedAmount`
+  - token แบบเก่า (ไม่มียอดล็อก): อาจส่งเฉพาะ `token` ได้
 
 **ตัวอย่าง Response สำเร็จ (200):**
 ```json
 {
   "success": true,
   "userId": "uuid-of-user",
-  "email": "user@example.com"
+  "email": "user@example.com",
+  "amount": 150
 }
 ```
+
+- ค่า **`amount`** ใน response = ยอดบาทที่ตู้ควรใช้กับ webhook (หัก credit) ให้สอดคล้องกับใน QR
 
 **ถ้า token หมดอายุ/ใช้แล้ว/ไม่ถูกต้อง (404):**
 ```json
@@ -143,7 +155,7 @@
 
 | ลำดับ | วัตถุประสงค์ | Method | URL | Body หลัก |
 |--------|----------------|--------|-----|-----------|
-| 1 | ตรวจสอบ QR และรับ userId | POST | `/api/vending/validate` | `{ "token": "..." }` |
+| 1 | ตรวจสอบ QR และรับ userId | POST | `/api/vending/validate` | `{ "token": "...", "amount": 150 }` (ยอดจาก QR) |
 | 2 | แจ้งผลรายการสำเร็จ | POST | `/api/webhook/vending` | `{ "userId": "...", "machineId": "..." }` |
 
 - โดเมนใช้ตามที่ deploy แอป (เช่น `https://your-app.vercel.app`)
@@ -171,9 +183,9 @@
 ## Flow แบบย่อ (สำหรับทีมตู้กด)
 
 ```
-[ลูกค้าแสดง QR] → ตู้สแกน QR ได้ token
+[ลูกค้าแสดง QR] → ตู้สแกน QR ได้ token + amount
        ↓
-POST /api/vending/validate { "token": "..." }
+POST /api/vending/validate { "token": "...", "amount": ... }
        ↓
 ได้ userId → ตู้ทำรายการ (จ่ายสินค้า)
        ↓

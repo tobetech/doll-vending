@@ -165,7 +165,7 @@ export default function MenuPage() {
     if (!user || loading) return
     if (searchParams.get('insufficient') === '1') {
       setInsufficientPopupText(
-        'ยอดเงินไม่พอหรือไม่ถึงขั้นต่ำการสั่งซื้อ (10 ชิ้น × 10 บาท) กรุณาเติมเงิน'
+        'ยอดเงินไม่พอหรือไม่ถึงขั้นต่ำการสั่งซื้อ (อย่างน้อย 10 บาท / 1 ชิ้น) กรุณาเติมเงิน'
       )
       setShowInsufficientPopup(true)
       router.replace('/menu', { scroll: false })
@@ -227,13 +227,13 @@ export default function MenuPage() {
         .maybeSingle()
       const credit = data?.credit != null ? Number(data.credit) : 0
       const maxPieces = Math.floor(credit / 10)
-      if (maxPieces >= 10) {
+      if (maxPieces >= 1) {
         router.push('/vending')
       } else {
         setInsufficientPopupText(
           credit <= 0
             ? 'จำนวนเงินไม่เพียงพอ กรุณาเติมเงิน'
-            : 'ยอดยังไม่ถึงขั้นต่ำการสั่งซื้อ (10 ชิ้น × 10 บาท) กรุณาเติมเงิน'
+            : 'ยอดยังไม่ถึงขั้นต่ำการสั่งซื้อ (อย่างน้อย 10 บาท / 1 ชิ้น) กรุณาเติมเงิน'
         )
         setShowInsufficientPopup(true)
       }
