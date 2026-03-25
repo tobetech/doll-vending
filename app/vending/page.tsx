@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { getSessionWithTimeout } from '@/lib/get-session-with-timeout'
 import { QrcodeSVG } from 'react-qrcode-pretty'
-import { FiArrowLeft, FiRefreshCw, FiUser, FiShield } from 'react-icons/fi'
+import { FiArrowLeft, FiMinus, FiPlus, FiRefreshCw, FiUser, FiShield } from 'react-icons/fi'
 import DisneyBackground from '@/app/components/DisneyBackground'
 import {
   APP_QR_SIZE,
@@ -21,6 +21,13 @@ const API_BASE = typeof window !== 'undefined' ? window.location.origin : ''
 const COUNTDOWN_SECONDS = 90 // 1:30 นาที
 const COUNTDOWN_REDIRECT_AFTER_MS = 1500
 const WEBHOOK_RESULT_SHOW_MS = 2500
+/** ตรงกับฝั่ง API qr-token / validate */
+const PRICE_PER_UNIT = 10
+const MIN_QUANTITY = 10
+
+function roundMoney(n: number): number {
+  return Math.round((n + Number.EPSILON) * 100) / 100
+}
 
 export default function VendingScanPage() {
   const router = useRouter()
@@ -40,8 +47,12 @@ export default function VendingScanPage() {
   const [testWebhookLoading, setTestWebhookLoading] = useState(false)
   const [testWebhookError, setTestWebhookError] = useState<string | null>(null)
   const [creditOk, setCreditOk] = useState<boolean | null>(null)
+  const [memberCredit, setMemberCredit] = useState<number>(0)
+  const [maxQuantity, setMaxQuantity] = useState(10)
+  const [quantity, setQuantity] = useState(10)
   const scanStartedAtRef = useRef<number | null>(null)
   const redirectingRef = useRef(false)
+  const qrFetchSeqRef = useRef(0)
 
   const isDev = typeof window !== 'undefined' && process.env.NODE_ENV === 'development'
 
@@ -67,7 +78,7 @@ export default function VendingScanPage() {
           userId: user.id,
           machineId: 'test-machine',
           productName: 'สินค้าทดสอบ',
-          amount: 0,
+          amount: quantity * PRICE_PER_UNIT,
         }),
       })
       const json = await res.json().catch(() => ({}))
@@ -78,7 +89,7 @@ export default function VendingScanPage() {
             ? Number(json.newCredit)
             : undefined
         setSuccessSummary({
-          amount: 0,
+          amount: quantity * PRICE_PER_UNIT,
           productName: 'สินค้าทดสอบ',
           newCredit: nc,
         })
@@ -94,12 +105,13 @@ export default function VendingScanPage() {
     }
   }
 
-  const fetchQrToken = useCallback(async () => {
+  const fetchQrToken = useCallback(async (purchaseAmount: number) => {
     const { session } = await getSessionWithTimeout()
     if (!session?.access_token) {
       setQrError('ไม่ได้เข้าสู่ระบบ')
       return
     }
+    const seq = ++qrFetchSeqRef.current
     setQrTokenLoading(true)
     setQrError(null)
     try {
@@ -109,9 +121,13 @@ export default function VendingScanPage() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({ refresh_token: session.refresh_token ?? '' }),
+        body: JSON.stringify({
+          refresh_token: session.refresh_token ?? '',
+          amount: roundMoney(purchaseAmount),
+        }),
       })
       const json = await res.json().catch(() => ({}))
+      if (seq !== qrFetchSeqRef.current) return
       if (!res.ok) {
         setQrToken(null)
         setQrExpiresAt(null)
@@ -121,11 +137,12 @@ export default function VendingScanPage() {
       setQrToken(json.token)
       setQrExpiresAt(json.expiresAt ?? null)
     } catch (e) {
+      if (seq !== qrFetchSeqRef.current) return
       setQrToken(null)
       setQrExpiresAt(null)
       setQrError('เกิดข้อผิดพลาดในการเชื่อมต่อ')
     } finally {
-      setQrTokenLoading(false)
+      if (seq === qrFetchSeqRef.current) setQrTokenLoading(false)
     }
   }, [])
 
@@ -171,12 +188,17 @@ export default function VendingScanPage() {
       .then(({ data, error }) => {
         clearTimeout(hangTimer)
         if (cancelled) return
-        const credit = data?.credit != null ? Number(data.credit) : 0
-        if (error || credit <= 0) {
+        const credit = roundMoney(data?.credit != null ? Number(data.credit) : 0)
+        const maxQ = Math.floor(credit / PRICE_PER_UNIT)
+        if (error || maxQ < MIN_QUANTITY) {
           failRedirect()
           return
         }
-        if (!redirectingRef.current) setCreditOk(true)
+        if (redirectingRef.current) return
+        setMemberCredit(credit)
+        setMaxQuantity(maxQ)
+        setQuantity(maxQ)
+        setCreditOk(true)
       })
       .catch(() => {
         clearTimeout(hangTimer)
@@ -190,8 +212,9 @@ export default function VendingScanPage() {
 
   useEffect(() => {
     if (!user?.id || creditOk !== true) return
-    fetchQrToken()
-  }, [user?.id, creditOk, fetchQrToken])
+    const purchaseTotal = quantity * PRICE_PER_UNIT
+    void fetchQrToken(purchaseTotal)
+  }, [user?.id, creditOk, quantity, fetchQrToken])
 
   // เก็บเวลาเมื่อเริ่มแสดง QR (ใช้กับ polling)
   useEffect(() => {
@@ -372,6 +395,55 @@ export default function VendingScanPage() {
             <FiShield className="w-5 h-5 text-bill-primary" />
           </div>
 
+          <div className="mb-5 rounded-card border border-bill-border bg-bill-pale/50 p-4">
+            <p className="text-sm font-medium text-gray-800">เลือกจำนวนสินค้า</p>
+            <p className="text-xs text-gray-500 mt-0.5">
+              ชิ้นละ {PRICE_PER_UNIT} บาท · ขั้นต่ำ {MIN_QUANTITY} ชิ้น · สูงสุดได้ไม่เกิน {maxQuantity} ชิ้น
+              (ยอดคงเหลือ{' '}
+              {new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(
+                memberCredit
+              )}
+              )
+            </p>
+            <div className="flex items-center justify-center gap-4 mt-4">
+              <button
+                type="button"
+                aria-label="ลดจำนวน"
+                disabled={quantity <= MIN_QUANTITY || qrTokenLoading}
+                onClick={() =>
+                  setQuantity((q) => Math.max(MIN_QUANTITY, q - 1))
+                }
+                className="w-11 h-11 rounded-xl border border-bill-border bg-white text-bill-primary flex items-center justify-center hover:bg-bill-pale disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <FiMinus className="w-5 h-5" />
+              </button>
+              <div className="min-w-[4.5rem] text-center">
+                <p className="text-3xl font-bold tabular-nums text-gray-900">{quantity}</p>
+                <p className="text-xs text-gray-500">ชิ้น</p>
+              </div>
+              <button
+                type="button"
+                aria-label="เพิ่มจำนวน"
+                disabled={quantity >= maxQuantity || qrTokenLoading}
+                onClick={() =>
+                  setQuantity((q) => Math.min(maxQuantity, q + 1))
+                }
+                className="w-11 h-11 rounded-xl border border-bill-border bg-white text-bill-primary flex items-center justify-center hover:bg-bill-pale disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <FiPlus className="w-5 h-5" />
+              </button>
+            </div>
+            <p className="text-center text-sm font-semibold text-bill-blue mt-3">
+              รวม{' '}
+              {new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(
+                quantity * PRICE_PER_UNIT
+              )}
+            </p>
+            <p className="text-xs text-center text-gray-500 mt-1">
+              เปลี่ยนจำนวนแล้ว QR จะถูกสร้างใหม่อัตโนมัติ
+            </p>
+          </div>
+
           <div className="flex w-full justify-center overflow-x-auto rounded-card p-3 sm:p-4 min-h-[min(85vw,380px)] sm:min-h-[380px] items-center border border-bill-border bg-bill-pale/40">
             {qrTokenLoading && !qrToken ? (
               <div className="flex flex-col items-center gap-2 text-bill-primary">
@@ -411,7 +483,7 @@ export default function VendingScanPage() {
                 <span className="text-sm text-amber-600">{qrError || 'ไม่สามารถโหลด QR ได้'}</span>
                 <button
                   type="button"
-                  onClick={() => fetchQrToken()}
+                  onClick={() => fetchQrToken(quantity * PRICE_PER_UNIT)}
                   className="flex items-center gap-2 px-4 py-2 text-white rounded-card text-sm font-semibold hover:opacity-95 border border-bill-blueDark/40 bg-bill-primary"
                 >
                   <FiRefreshCw className="w-4 h-4" /> ลองใหม่

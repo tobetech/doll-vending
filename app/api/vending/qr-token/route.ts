@@ -7,10 +7,19 @@ import {
 } from '@/lib/supabase-env-error'
 
 const TOKEN_VALID_MINUTES = 3
+/** ราคาต่อชิ้น (บาท) — ขั้นต่ำ 10 ชิ้น = 100 บาท; จำนวนสูงสุด = floor(credit/10) ชิ้น */
+const PRICE_PER_UNIT = 10
+const MIN_QUANTITY = 10
+
+function roundMoney(n: number): number {
+  return Math.round((n + Number.EPSILON) * 100) / 100
+}
 
 /**
  * สร้างโทเค็นสำหรับ Dynamic QR (ต้องส่ง Authorization: Bearer <access_token>)
  * โทเค็นหมดอายุใน 3 นาที และใช้ได้ครั้งเดียวเมื่อตู้กดเรียก validate
+ *
+ * Body: { refresh_token?, amount } — amount = ยอดเงินรวม (จำนวนชิ้น × 10) ต้องตรงกับที่ส่ง validate
  */
 export async function POST(request: NextRequest) {
   try {
@@ -20,13 +29,26 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Authorization required' }, { status: 401 })
     }
 
-    let body: { refresh_token?: string } = {}
+    let body: { refresh_token?: string; amount?: unknown } = {}
     try {
       body = await request.json().catch(() => ({}))
     } catch {
       // no body
     }
     const refreshToken = body.refresh_token ?? ''
+    const rawAmount = body.amount
+    const purchaseAmount =
+      typeof rawAmount === 'string'
+        ? roundMoney(parseFloat(rawAmount.replace(/,/g, '').trim()))
+        : typeof rawAmount === 'number'
+          ? roundMoney(rawAmount)
+          : NaN
+    if (!Number.isFinite(purchaseAmount)) {
+      return NextResponse.json(
+        { error: 'amount is required and must be a number (total purchase in THB)' },
+        { status: 400 }
+      )
+    }
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -64,13 +86,80 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const expiresAt = new Date(Date.now() + TOKEN_VALID_MINUTES * 60 * 1000)
     const serverSupabase = createServerSupabase()
+
+    const { data: member, error: memErr } = await serverSupabase
+      .from('vending_member')
+      .select('credit')
+      .eq('id', userId)
+      .maybeSingle()
+
+    if (memErr) {
+      console.error('qr-token member read error:', memErr)
+      return NextResponse.json({ error: memErr.message }, { status: 500 })
+    }
+
+    const credit = roundMoney(
+      member?.credit != null ? Number(member.credit) : 0
+    )
+    const maxQty = Math.floor(credit / PRICE_PER_UNIT)
+    const maxAmount = maxQty * PRICE_PER_UNIT
+    const minAmount = MIN_QUANTITY * PRICE_PER_UNIT
+
+    if (maxQty < MIN_QUANTITY) {
+      return NextResponse.json(
+        {
+          error: 'Insufficient credit for minimum order (need at least 100 THB for 10 items)',
+          code: 'insufficient_for_minimum',
+          credit,
+          minAmount,
+          maxAmount: maxQty * PRICE_PER_UNIT,
+        },
+        { status: 402 }
+      )
+    }
+
+    if (
+      purchaseAmount < minAmount - 1e-9 ||
+      purchaseAmount > maxAmount + 1e-9
+    ) {
+      return NextResponse.json(
+        {
+          error: 'amount out of range for current credit',
+          code: 'invalid_amount',
+          amount: purchaseAmount,
+          minAmount,
+          maxAmount,
+        },
+        { status: 400 }
+      )
+    }
+
+    const qty = Math.round(purchaseAmount / PRICE_PER_UNIT)
+    if (
+      qty < MIN_QUANTITY ||
+      qty > maxQty ||
+      Math.abs(qty * PRICE_PER_UNIT - purchaseAmount) > 1e-6
+    ) {
+      return NextResponse.json(
+        {
+          error: `amount must be a multiple of ${PRICE_PER_UNIT} between ${minAmount} and ${maxAmount}`,
+          code: 'invalid_amount_step',
+          minAmount,
+          maxAmount,
+        },
+        { status: 400 }
+      )
+    }
+
+    const lockedAmount = roundMoney(qty * PRICE_PER_UNIT)
+    const expiresAt = new Date(Date.now() + TOKEN_VALID_MINUTES * 60 * 1000)
     const { data: row, error } = await serverSupabase
       .from('vending_qr_tokens')
       .insert({
         user_id: userId,
         expires_at: expiresAt.toISOString(),
+        expected_amount: lockedAmount,
       })
       .select('token, expires_at')
       .single()
@@ -78,12 +167,21 @@ export async function POST(request: NextRequest) {
     if (error) {
       console.error('qr-token insert error:', error)
       const isTableMissing = error.code === '42P01' || error.message?.includes('does not exist')
+      const isMissingExpectedAmountCol =
+        error.message?.includes('expected_amount') &&
+        (error.message?.includes('does not exist') || error.code === '42703')
       return NextResponse.json(
         {
           error: isTableMissing
             ? 'Table vending_qr_tokens not found. Run supabase/vending_qr_tokens_migration.sql in Supabase SQL Editor.'
-            : 'Failed to create token',
-          code: isTableMissing ? 'table_missing' : 'insert_error',
+            : isMissingExpectedAmountCol
+              ? 'Column expected_amount missing. Run supabase/vending_qr_tokens_expected_amount.sql in Supabase SQL Editor.'
+              : 'Failed to create token',
+          code: isTableMissing
+            ? 'table_missing'
+            : isMissingExpectedAmountCol
+              ? 'column_missing'
+              : 'insert_error',
         },
         { status: 500 }
       )
@@ -92,6 +190,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       token: row.token,
       expiresAt: row.expires_at,
+      amount: lockedAmount,
+      quantity: qty,
     })
   } catch (e) {
     console.error('qr-token error:', e)

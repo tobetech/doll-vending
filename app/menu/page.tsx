@@ -26,6 +26,9 @@ export default function MenuPage() {
   const [points, setPoints] = useState<number>(0)
   const [loading, setLoading] = useState(true)
   const [showInsufficientPopup, setShowInsufficientPopup] = useState(false)
+  const [insufficientPopupText, setInsufficientPopupText] = useState(
+    'จำนวนเงินไม่เพียงพอ กรุณาเติมเงิน'
+  )
   const [vendingCheckLoading, setVendingCheckLoading] = useState(false)
 
   /** กัน fetch/realtime ของ user คนก่อนยังไม่เสร็จแล้วมาทับหลังล็อกอินคนใหม่ */
@@ -161,6 +164,9 @@ export default function MenuPage() {
   useEffect(() => {
     if (!user || loading) return
     if (searchParams.get('insufficient') === '1') {
+      setInsufficientPopupText(
+        'ยอดเงินไม่พอหรือไม่ถึงขั้นต่ำการสั่งซื้อ (10 ชิ้น × 10 บาท) กรุณาเติมเงิน'
+      )
       setShowInsufficientPopup(true)
       router.replace('/menu', { scroll: false })
     }
@@ -220,9 +226,15 @@ export default function MenuPage() {
         .eq('id', user.id)
         .maybeSingle()
       const credit = data?.credit != null ? Number(data.credit) : 0
-      if (credit > 0) {
+      const maxPieces = Math.floor(credit / 10)
+      if (maxPieces >= 10) {
         router.push('/vending')
       } else {
+        setInsufficientPopupText(
+          credit <= 0
+            ? 'จำนวนเงินไม่เพียงพอ กรุณาเติมเงิน'
+            : 'ยอดยังไม่ถึงขั้นต่ำการสั่งซื้อ (10 ชิ้น × 10 บาท) กรุณาเติมเงิน'
+        )
         setShowInsufficientPopup(true)
       }
     } finally {
@@ -345,10 +357,13 @@ export default function MenuPage() {
         {showInsufficientPopup && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
             <div className="bg-white rounded-card shadow-2xl p-6 max-w-xs w-full border border-bill-border text-center">
-              <p className="text-gray-800 font-medium">จำนวนเงินไม่เพียงพอ กรุณาเติมเงิน</p>
+              <p className="text-gray-800 font-medium">{insufficientPopupText}</p>
               <button
                 type="button"
-                onClick={() => setShowInsufficientPopup(false)}
+                onClick={() => {
+                  setShowInsufficientPopup(false)
+                  setInsufficientPopupText('จำนวนเงินไม่เพียงพอ กรุณาเติมเงิน')
+                }}
                 className="mt-4 w-full py-3 bg-bill-primary text-white rounded-card font-semibold hover:opacity-95"
               >
                 ตกลง
