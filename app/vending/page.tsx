@@ -210,11 +210,25 @@ export default function VendingScanPage() {
     }
   }, [user?.id, router])
 
-  useEffect(() => {
-    if (!user?.id || creditOk !== true) return
-    const purchaseTotal = quantity * PRICE_PER_UNIT
-    void fetchQrToken(purchaseTotal)
-  }, [user?.id, creditOk, quantity, fetchQrToken])
+  const clearQr = useCallback(() => {
+    setQrToken(null)
+    setQrExpiresAt(null)
+    setQrError(null)
+  }, [])
+
+  const adjustQuantity = useCallback(
+    (delta: number) => {
+      clearQr()
+      setQuantity((q) =>
+        Math.max(MIN_QUANTITY, Math.min(maxQuantity, q + delta))
+      )
+    },
+    [maxQuantity, clearQr]
+  )
+
+  const handleConfirmQuantity = useCallback(() => {
+    void fetchQrToken(quantity * PRICE_PER_UNIT)
+  }, [quantity, fetchQrToken])
 
   // เก็บเวลาเมื่อเริ่มแสดง QR (ใช้กับ polling)
   useEffect(() => {
@@ -390,62 +404,20 @@ export default function VendingScanPage() {
             </div>
             <div className="flex-1">
               <h2 className="font-semibold text-gray-800">QR ประจำตัว (Dynamic)</h2>
-              <p className="text-sm text-gray-500">แสดง QR ที่ตู้กด ใช้ได้ครั้งเดียว</p>
+              <p className="text-sm text-gray-500">ยืนยันจำนวนแล้วแสดง QR ที่ตู้กด · ใช้ได้ครั้งเดียว</p>
             </div>
             <FiShield className="w-5 h-5 text-bill-primary" />
           </div>
 
-          <div className="mb-5 rounded-card border border-bill-border bg-bill-pale/50 p-4">
-            <p className="text-sm font-medium text-gray-800">เลือกจำนวนสินค้า</p>
-            <p className="text-xs text-gray-500 mt-0.5">
-              ชิ้นละ {PRICE_PER_UNIT} บาท · ขั้นต่ำ {MIN_QUANTITY} ชิ้น · สูงสุดได้ไม่เกิน {maxQuantity} ชิ้น
-              (ยอดคงเหลือ{' '}
-              {new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(
-                memberCredit
-              )}
-              )
-            </p>
-            <div className="flex items-center justify-center gap-4 mt-4">
-              <button
-                type="button"
-                aria-label="ลดจำนวน"
-                disabled={quantity <= MIN_QUANTITY || qrTokenLoading}
-                onClick={() =>
-                  setQuantity((q) => Math.max(MIN_QUANTITY, q - 1))
-                }
-                className="w-11 h-11 rounded-xl border border-bill-border bg-white text-bill-primary flex items-center justify-center hover:bg-bill-pale disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                <FiMinus className="w-5 h-5" />
-              </button>
-              <div className="min-w-[4.5rem] text-center">
-                <p className="text-3xl font-bold tabular-nums text-gray-900">{quantity}</p>
-                <p className="text-xs text-gray-500">ชิ้น</p>
-              </div>
-              <button
-                type="button"
-                aria-label="เพิ่มจำนวน"
-                disabled={quantity >= maxQuantity || qrTokenLoading}
-                onClick={() =>
-                  setQuantity((q) => Math.min(maxQuantity, q + 1))
-                }
-                className="w-11 h-11 rounded-xl border border-bill-border bg-white text-bill-primary flex items-center justify-center hover:bg-bill-pale disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                <FiPlus className="w-5 h-5" />
-              </button>
-            </div>
-            <p className="text-center text-sm font-semibold text-bill-blue mt-3">
-              รวม{' '}
-              {new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(
-                quantity * PRICE_PER_UNIT
-              )}
-            </p>
-            <p className="text-xs text-center text-gray-500 mt-1">
-              เปลี่ยนจำนวนแล้ว QR จะถูกสร้างใหม่อัตโนมัติ
-            </p>
-          </div>
-
-          <div className="flex w-full justify-center overflow-x-auto rounded-card p-3 sm:p-4 min-h-[min(85vw,380px)] sm:min-h-[380px] items-center border border-bill-border bg-bill-pale/40">
-            {qrTokenLoading && !qrToken ? (
+          {/* QR แสดงด้านบน — หลังกดยืนยันจำนวน */}
+          <div
+            className={`flex w-full justify-center overflow-x-auto rounded-card border border-bill-border bg-bill-pale/40 items-center ${
+              qrToken || qrTokenLoading
+                ? 'p-3 sm:p-4 min-h-[min(85vw,380px)] sm:min-h-[380px]'
+                : 'p-8 min-h-[160px]'
+            } mb-4`}
+          >
+            {qrTokenLoading ? (
               <div className="flex flex-col items-center gap-2 text-bill-primary">
                 <FiRefreshCw className="w-8 h-8 animate-spin" />
                 <span className="text-sm">กำลังสร้าง QR...</span>
@@ -479,22 +451,30 @@ export default function VendingScanPage() {
                 </div>
               </div>
             ) : (
-              <div className="flex flex-col items-center gap-3 text-center">
-                <span className="text-sm text-amber-600">{qrError || 'ไม่สามารถโหลด QR ได้'}</span>
-                <button
-                  type="button"
-                  onClick={() => fetchQrToken(quantity * PRICE_PER_UNIT)}
-                  className="flex items-center gap-2 px-4 py-2 text-white rounded-card text-sm font-semibold hover:opacity-95 border border-bill-blueDark/40 bg-bill-primary"
-                >
-                  <FiRefreshCw className="w-4 h-4" /> ลองใหม่
-                </button>
+              <div className="flex flex-col items-center gap-2 text-center px-2">
+                <p className="text-sm text-gray-600">
+                  เลือกจำนวนสินค้าด้านล่าง แล้วกด <span className="font-semibold text-bill-primary">ยืนยันจำนวนซื้อ</span> เพื่อแสดง QR
+                </p>
+                {qrError ? (
+                  <>
+                    <p className="text-sm text-amber-600">{qrError}</p>
+                    <button
+                      type="button"
+                      onClick={handleConfirmQuantity}
+                      disabled={qrTokenLoading}
+                      className="flex items-center gap-2 px-4 py-2 text-white rounded-card text-sm font-semibold hover:opacity-95 border border-bill-blueDark/40 bg-bill-primary disabled:opacity-50"
+                    >
+                      <FiRefreshCw className="w-4 h-4" /> ลองใหม่
+                    </button>
+                  </>
+                ) : null}
               </div>
             )}
           </div>
 
-          {/* เวลานับถอยหลัง — ถึง 0 แล้วกลับหน้าเมนูหลัก */}
-          {countdownSeconds !== null && countdownSeconds > 0 && !webhookResult && (
-            <div className="mt-4 text-center">
+          {/* เวลานับถอยหลัง — ใต้ QR */}
+          {countdownSeconds !== null && countdownSeconds > 0 && !webhookResult && qrToken && (
+            <div className="mb-4 text-center">
               <p className="text-sm text-gray-600">QR หมดอายุใน</p>
               <p className="text-2xl font-bold tabular-nums text-bill-primary">
                 {Math.floor(countdownSeconds / 60)}:{(countdownSeconds % 60).toString().padStart(2, '0')}
@@ -502,9 +482,62 @@ export default function VendingScanPage() {
               <p className="text-xs text-gray-500 mt-1">หมดเวลาจะกลับหน้าเมนูอัตโนมัติ</p>
             </div>
           )}
-          {countdownSeconds === 0 && !webhookResult && (
-            <p className="mt-4 text-center text-sm text-gray-500">หมดเวลา กำลังกลับหน้าเมนู...</p>
+          {countdownSeconds === 0 && !webhookResult && qrToken && (
+            <p className="mb-4 text-center text-sm text-gray-500">หมดเวลา กำลังกลับหน้าเมนู...</p>
           )}
+
+          <div className="rounded-card border border-bill-border bg-bill-pale/50 p-4">
+            <p className="text-sm font-medium text-gray-800">เลือกจำนวนสินค้า</p>
+            <p className="text-xs text-gray-500 mt-0.5">
+              ชิ้นละ {PRICE_PER_UNIT} บาท · ขั้นต่ำ {MIN_QUANTITY} ชิ้น · สูงสุดได้ไม่เกิน {maxQuantity} ชิ้น
+              (ยอดคงเหลือ{' '}
+              {new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(
+                memberCredit
+              )}
+              )
+            </p>
+            <div className="flex items-center justify-center gap-4 mt-4">
+              <button
+                type="button"
+                aria-label="ลดจำนวน"
+                disabled={quantity <= MIN_QUANTITY || qrTokenLoading}
+                onClick={() => adjustQuantity(-1)}
+                className="w-11 h-11 rounded-xl border border-bill-border bg-white text-bill-primary flex items-center justify-center hover:bg-bill-pale disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <FiMinus className="w-5 h-5" />
+              </button>
+              <div className="min-w-[4.5rem] text-center">
+                <p className="text-3xl font-bold tabular-nums text-gray-900">{quantity}</p>
+                <p className="text-xs text-gray-500">ชิ้น</p>
+              </div>
+              <button
+                type="button"
+                aria-label="เพิ่มจำนวน"
+                disabled={quantity >= maxQuantity || qrTokenLoading}
+                onClick={() => adjustQuantity(1)}
+                className="w-11 h-11 rounded-xl border border-bill-border bg-white text-bill-primary flex items-center justify-center hover:bg-bill-pale disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <FiPlus className="w-5 h-5" />
+              </button>
+            </div>
+            <p className="text-center text-sm font-semibold text-bill-blue mt-3">
+              รวม{' '}
+              {new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(
+                quantity * PRICE_PER_UNIT
+              )}
+            </p>
+            <p className="text-xs text-center text-gray-500 mt-1">
+              เปลี่ยนจำนวนแล้วต้องกดยืนยันอีกครั้งเพื่อสร้าง QR ใหม่
+            </p>
+            <button
+              type="button"
+              onClick={handleConfirmQuantity}
+              disabled={qrTokenLoading}
+              className="mt-4 w-full py-3 bg-bill-primary text-white rounded-card font-semibold border border-bill-blueDark/30 hover:opacity-95 disabled:opacity-50"
+            >
+              {qrTokenLoading ? 'กำลังสร้าง QR...' : 'ยืนยันจำนวนซื้อและสร้าง QR'}
+            </button>
+          </div>
 
           {/* ปุ่มทดสอบ Webhook — แสดงเฉพาะโหมด development */}
           {isDev && user?.id && !webhookResult && (
