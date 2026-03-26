@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { FiArrowLeft, FiCreditCard } from 'react-icons/fi'
+import { FiArrowLeft, FiCreditCard, FiMinus, FiPlus } from 'react-icons/fi'
 import { QrcodeSVG } from 'react-qrcode-pretty'
 import DisneyBackground from '@/app/components/DisneyBackground'
 import { supabase } from '@/lib/supabase'
@@ -17,7 +17,9 @@ import {
 } from '@/lib/qr-display'
 
 const API_BASE = typeof window !== 'undefined' ? window.location.origin : ''
-const PRESET_AMOUNTS_BAHT = [50, 100, 200, 500, 1000, 2000]
+const MIN_TOPUP_BAHT = 20
+const MAX_TOPUP_BAHT = 1000
+const STEP_TOPUP_BAHT = 10
 const COUNTDOWN_SECONDS = 300
 const SUCCESS_SHOW_MS = 2800
 const POLL_MS = 3000
@@ -211,6 +213,12 @@ export default function TopUpPage() {
     }
   }
 
+  const adjustAmount = useCallback((delta: number) => {
+    setSelectedAmountBaht((prev) =>
+      Math.max(MIN_TOPUP_BAHT, Math.min(MAX_TOPUP_BAHT, prev + delta))
+    )
+  }, [])
+
   const handleTestWebhook = async () => {
     if (!qrPayload) return
     setTestWebhookLoading(true)
@@ -313,28 +321,44 @@ export default function TopUpPage() {
             <label className="text-sm font-medium text-gray-700 block mb-1">
               เลือกจำนวนเงินที่ต้องการเติม (บาท)
             </label>
-            <div className="grid grid-cols-3 gap-2">
-              {PRESET_AMOUNTS_BAHT.map((amt) => {
-                const active = amt === selectedAmountBaht
-                return (
-                  <button
-                    key={amt}
-                    type="button"
-                    onClick={() => setSelectedAmountBaht(amt)}
-                    disabled={Boolean(topupToken) && success === null}
-                    className={[
-                      'py-2 rounded-card border font-semibold',
-                      active
-                        ? 'bg-bill-primary text-white border-bill-blueDark/30'
-                        : 'bg-white text-gray-700 border-bill-border hover:bg-bill-pale/60',
-                      'disabled:opacity-50 disabled:hover:bg-white',
-                    ].join(' ')}
-                  >
-                    {amt}
-                  </button>
-                )
-              })}
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => adjustAmount(-STEP_TOPUP_BAHT)}
+                disabled={
+                  (Boolean(topupToken) && success === null) ||
+                  selectedAmountBaht <= MIN_TOPUP_BAHT
+                }
+                className="w-12 h-12 rounded-card border border-bill-border flex items-center justify-center text-bill-primary hover:bg-bill-pale/60 disabled:opacity-50"
+                aria-label="ลดจำนวนเงิน"
+              >
+                <FiMinus className="w-5 h-5" />
+              </button>
+              <div className="flex-1 rounded-card border border-bill-border bg-white px-4 py-3 text-center">
+                <p className="text-xs text-gray-500">จำนวนเงินที่เลือก</p>
+                <p className="text-xl font-bold text-bill-blue tabular-nums">
+                  {new Intl.NumberFormat('th-TH', {
+                    style: 'currency',
+                    currency: 'THB',
+                  }).format(selectedAmountBaht)}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => adjustAmount(STEP_TOPUP_BAHT)}
+                disabled={
+                  (Boolean(topupToken) && success === null) ||
+                  selectedAmountBaht >= MAX_TOPUP_BAHT
+                }
+                className="w-12 h-12 rounded-card border border-bill-border flex items-center justify-center text-bill-primary hover:bg-bill-pale/60 disabled:opacity-50"
+                aria-label="เพิ่มจำนวนเงิน"
+              >
+                <FiPlus className="w-5 h-5" />
+              </button>
             </div>
+            <p className="text-xs text-gray-500 mt-2">
+              เพิ่ม/ลดครั้งละ {STEP_TOPUP_BAHT} บาท (ขั้นต่ำ {MIN_TOPUP_BAHT} สูงสุด {MAX_TOPUP_BAHT})
+            </p>
           </div>
 
           {createError && (
