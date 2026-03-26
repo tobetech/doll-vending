@@ -21,11 +21,16 @@ export async function POST(request: NextRequest) {
     const body = await request.json() as {
       token?: string
       userId?: string
+      userID?: string
       machineId?: string
       productId?: string
       amount?: unknown
     }
-    const { token, userId: bodyUserId } = body
+    const token = typeof body.token === 'string' ? body.token : undefined
+    const bodyUserId =
+      (typeof body.userId === 'string' && body.userId) ||
+      (typeof body.userID === 'string' && body.userID) ||
+      undefined
 
     const supabase = createServerSupabase()
 
@@ -89,9 +94,9 @@ export async function POST(request: NextRequest) {
     }
 
     // กรณีส่ง userId (แบบเก่า)
-    if (!bodyUserId || typeof bodyUserId !== 'string') {
+    if (!bodyUserId) {
       return NextResponse.json(
-        { success: false, error: 'token or userId is required' },
+        { success: false, error: 'token or userId/userID is required' },
         { status: 400 }
       )
     }
