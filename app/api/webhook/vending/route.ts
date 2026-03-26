@@ -5,6 +5,7 @@ import {
   nextMisconfiguredWebhook,
 } from '@/lib/supabase-env-error'
 import { isMissingCreditAfterColumnError } from '@/lib/vending-transaction-insert'
+const PRICE_PER_UNIT = 10
 
 /** ปัดทศนิยม 2 ตำแหน่ง (เงินบาท) */
 function roundMoney(n: number): number {
@@ -81,6 +82,20 @@ function parseRefundPoint(body: Record<string, unknown>): number {
   ])
 }
 
+function parseQuantity(body: Record<string, unknown>): number | null {
+  const q = parseNonNegativeAmount(body, [
+    'quantity',
+    'qty',
+    'count',
+    'item_count',
+    'items',
+    'piece',
+    'pieces',
+  ])
+  if (!Number.isFinite(q) || q <= 0) return null
+  return Math.max(1, Math.round(q))
+}
+
 function parseVendingWebhook(raw: unknown): {
   userId: string
   machineId: string
@@ -88,6 +103,7 @@ function parseVendingWebhook(raw: unknown): {
   productName: string
   amount: number
   refundPoint: number
+  quantity: number | null
   transactionId?: string
 } {
   const b = normalizeBodyKeys(raw)
@@ -105,6 +121,7 @@ function parseVendingWebhook(raw: unknown): {
   const transactionId = readNonEmptyString(b.transaction_id) ?? readNonEmptyString(b.transactionid)
   const amount = parseDeductAmount(b)
   const refundPoint = parseRefundPoint(b)
+  const quantity = parseQuantity(b)
   return {
     userId: userId ?? '',
     machineId: machineId ?? '',
@@ -112,6 +129,7 @@ function parseVendingWebhook(raw: unknown): {
     productName,
     amount,
     refundPoint,
+    quantity,
     transactionId,
   }
 }
@@ -126,6 +144,7 @@ export async function POST(request: NextRequest) {
       productName,
       amount,
       refundPoint,
+      quantity,
       transactionId,
     } = parseVendingWebhook(raw)
 
@@ -175,6 +194,13 @@ export async function POST(request: NextRequest) {
     const currentPoint = member?.point != null ? Number(member.point) : 0
     const amtRounded = roundMoney(amt)
     const refundRounded = Math.max(0, Math.round(refundPoint))
+    const quantityUsed =
+      quantity != null
+        ? quantity
+        : amtRounded > 0
+          ? Math.max(1, Math.round(amtRounded / PRICE_PER_UNIT))
+          : 1
+    const refundedTotal = refundRounded * quantityUsed
 
     if (amtRounded > 0 && currentCredit < amtRounded) {
       return NextResponse.json(
@@ -191,7 +217,7 @@ export async function POST(request: NextRequest) {
 
     // ยอดใหม่ = credit ปัจจุบัน − amount จาก webhook (เช่น 500 − 10 = 490)
     const newCredit = roundMoney(currentCredit - amtRounded)
-    const newPoint = Math.max(0, currentPoint + refundRounded)
+    const newPoint = Math.max(0, currentPoint + refundedTotal)
 
     const { data: updatedMember, error: upErr } = await supabase
       .from('vending_member')
@@ -269,7 +295,8 @@ export async function POST(request: NextRequest) {
       newCredit: confirmedCredit,
       newPoint: confirmedPoint,
       deducted: amtRounded,
-      refunded: refundRounded,
+      refunded: refundedTotal,
+      quantity: quantityUsed,
     })
   } catch (e) {
     console.error('Webhook vending error:', e)
