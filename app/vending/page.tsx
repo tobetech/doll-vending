@@ -343,8 +343,8 @@ export default function VendingScanPage() {
   }, [user?.id, qrToken, webhookResult])
 
   const qrString =
-    qrToken && qrLockedAmount != null
-      ? JSON.stringify({ token: qrToken, action: 'Play', amount: qrLockedAmount })
+    user?.id && qrLockedAmount != null
+      ? JSON.stringify({ userID: user.id, action: 'Play', amount: qrLockedAmount })
       : ''
 
   if (loading || !user || creditOk !== true) {
