@@ -344,7 +344,7 @@ export default function VendingScanPage() {
 
   const qrString =
     qrToken && qrLockedAmount != null
-      ? JSON.stringify({ token: qrToken, amount: qrLockedAmount })
+      ? JSON.stringify({ token: qrToken, action: 'Play', amount: qrLockedAmount })
       : ''
 
   if (loading || !user || creditOk !== true) {

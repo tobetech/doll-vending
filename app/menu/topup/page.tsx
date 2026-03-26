@@ -317,6 +317,48 @@ export default function TopUpPage() {
             </p>
           </div>
 
+          {topupToken && (
+            <>
+              {countdownSeconds !== null && countdownSeconds > 0 && (
+                <p className="text-center text-sm text-bill-primary font-semibold">
+                  QR หมดอายุใน {Math.floor(countdownSeconds / 60)}:
+                  {String(countdownSeconds % 60).padStart(2, '0')}
+                </p>
+              )}
+              <div className="w-full border border-bill-border rounded-card p-4 bg-bill-pale/40 flex justify-center">
+                {qrPayload ? (
+                  <QrcodeSVG
+                    value={qrValue}
+                    size={APP_QR_SIZE}
+                    level={APP_QR_ERROR_LEVEL}
+                    margin={6}
+                    padding={6}
+                    variant={{ eyes: 'standard', body: 'dots' }}
+                    color={APP_QR_COLOR}
+                    bgColor={APP_QR_BACKGROUND}
+                  />
+                ) : null}
+              </div>
+              <div className="text-sm text-gray-600 space-y-1">
+                <p>
+                  userID: <span className="font-semibold">{user.id}</span>
+                </p>
+                <p>
+                  action: <span className="font-semibold">topup</span>
+                </p>
+                <p>
+                  amount:{' '}
+                  <span className="font-semibold">
+                    {new Intl.NumberFormat('th-TH', {
+                      style: 'currency',
+                      currency: 'THB',
+                    }).format(topupAmount ?? 0)}
+                  </span>
+                </p>
+              </div>
+            </>
+          )}
+
           <div>
             <label className="text-sm font-medium text-gray-700 block mb-1">
               เลือกจำนวนเงินที่ต้องการเติม (บาท)
@@ -378,43 +420,6 @@ export default function TopUpPage() {
             </button>
           ) : (
             <>
-              {countdownSeconds !== null && countdownSeconds > 0 && (
-                <p className="text-center text-sm text-bill-primary font-semibold">
-                  QR หมดอายุใน {Math.floor(countdownSeconds / 60)}:
-                  {String(countdownSeconds % 60).padStart(2, '0')}
-                </p>
-              )}
-              <div className="w-full border border-bill-border rounded-card p-4 bg-bill-pale/40 flex justify-center">
-                {qrPayload ? (
-                  <QrcodeSVG
-                    value={qrValue}
-                    size={APP_QR_SIZE}
-                    level={APP_QR_ERROR_LEVEL}
-                    margin={6}
-                    padding={6}
-                    variant={{ eyes: 'standard', body: 'dots' }}
-                    color={APP_QR_COLOR}
-                    bgColor={APP_QR_BACKGROUND}
-                  />
-                ) : null}
-              </div>
-              <div className="text-sm text-gray-600 space-y-1">
-                <p>
-                  userID: <span className="font-semibold">{user.id}</span>
-                </p>
-                <p>
-                  action: <span className="font-semibold">topup</span>
-                </p>
-                <p>
-                  amount:{' '}
-                  <span className="font-semibold">
-                    {new Intl.NumberFormat('th-TH', {
-                      style: 'currency',
-                      currency: 'THB',
-                    }).format(topupAmount ?? 0)}
-                  </span>
-                </p>
-              </div>
               {IS_DEV && (
                 <>
                   {testWebhookError && (
