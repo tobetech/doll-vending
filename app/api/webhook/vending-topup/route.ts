@@ -9,6 +9,7 @@ import { isMissingCreditAfterColumnError } from '@/lib/vending-transaction-inser
 type WebhookBody = {
   token: string
   userId: string
+  action?: string
   amount: number
   machineId: string
   transactionId?: string
@@ -23,6 +24,7 @@ export async function POST(request: NextRequest) {
     const body = (await request.json()) as WebhookBody
     const { token, userId, machineId, transactionId } = body
     const amount = Number(body.amount)
+    const action = (body.action ?? '').trim().toLowerCase()
 
     if (!token || typeof token !== 'string') {
       return NextResponse.json(
@@ -36,6 +38,12 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
+    if (action && action !== 'topup') {
+      return NextResponse.json(
+        { ok: false, error: 'action must be topup' },
+        { status: 400 }
+      )
+    }
     if (!Number.isFinite(amount) || amount <= 0) {
       return NextResponse.json(
         { ok: false, error: 'amount must be a positive number' },
@@ -44,6 +52,49 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = createServerSupabase()
+
+    const { data: tokenRow, error: tokenErr } = await supabase
+      .from('vending_topup_token')
+      .select('status, amount')
+      .eq('token', token.trim())
+      .eq('user_id', userId)
+      .maybeSingle()
+
+    if (tokenErr) {
+      console.error('vending-topup webhook token read error:', tokenErr)
+      return NextResponse.json(
+        { ok: false, error: tokenErr.message },
+        { status: 500 }
+      )
+    }
+    if (!tokenRow) {
+      return NextResponse.json(
+        { ok: false, error: 'Token not found for this user' },
+        { status: 404 }
+      )
+    }
+    if (tokenRow.status === 'completed') {
+      return NextResponse.json({
+        ok: true,
+        duplicate: true,
+        message: 'Top-up already recorded for this token',
+      })
+    }
+    if (tokenRow.status !== 'locked' && tokenRow.status !== 'pending') {
+      return NextResponse.json(
+        { ok: false, error: `Token status ${tokenRow.status} is not allowed` },
+        { status: 409 }
+      )
+    }
+    if (
+      tokenRow.amount != null &&
+      Math.abs(Number(tokenRow.amount) - amount) > 0.000001
+    ) {
+      return NextResponse.json(
+        { ok: false, error: 'amount mismatch with QR payload' },
+        { status: 409 }
+      )
+    }
 
     const { data: completedRow, error: completeError } = await supabase
       .from('vending_topup_token')
@@ -55,7 +106,7 @@ export async function POST(request: NextRequest) {
       })
       .eq('token', token.trim())
       .eq('user_id', userId)
-      .eq('status', 'locked')
+      .in('status', ['locked', 'pending'])
       .select('token')
       .maybeSingle()
 
@@ -68,26 +119,10 @@ export async function POST(request: NextRequest) {
     }
 
     if (!completedRow) {
-      const { data: existing } = await supabase
-        .from('vending_topup_token')
-        .select('status, amount')
-        .eq('token', token.trim())
-        .eq('user_id', userId)
-        .maybeSingle()
-
-      if (existing?.status === 'completed') {
-        return NextResponse.json({
-          ok: true,
-          duplicate: true,
-          message: 'Top-up already recorded for this token',
-        })
-      }
-
       return NextResponse.json(
         {
           ok: false,
-          error:
-            'Token is not locked for this user — call topup-validate first or token mismatch',
+          error: 'Token cannot be completed (already used or status changed)',
         },
         { status: 409 }
       )

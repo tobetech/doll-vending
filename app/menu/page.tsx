@@ -253,7 +253,7 @@ export default function MenuPage() {
 
   const menuItems: { href: string; label: string; desc: string; Icon: React.ComponentType<{ className?: string }>; needCreditCheck?: boolean }[] = [
     { href: '/vending', label: 'สแกน QR Code ซื้อของ', desc: 'แสดง QR ที่ตู้กดเพื่อซื้อสินค้า', Icon: FiShoppingBag, needCreditCheck: true },
-    { href: '/menu/topup', label: 'เติมเงิน', desc: 'สแกน QR ที่ตู้เติมเงิน', Icon: FiPlusCircle },
+    { href: '/menu/topup', label: 'เติมเงิน', desc: 'สร้าง QR ให้ตู้ทำรายการ', Icon: FiPlusCircle },
     { href: '/menu/redeem', label: 'แลกคะแนน', desc: 'แลกคะแนนสะสมเป็นของรางวัล', Icon: FiGift },
     { href: '/menu/history', label: 'ประวัติการใช้งาน', desc: 'รายการซื้อและธุรกรรม', Icon: FiList },
     { href: '/menu/profile', label: 'แก้ไขข้อมูลส่วนตัว', desc: 'อีเมลและข้อมูลสมาชิก', Icon: FiUser },

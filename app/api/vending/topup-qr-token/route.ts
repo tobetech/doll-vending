@@ -7,6 +7,8 @@ import {
 } from '@/lib/supabase-env-error'
 
 const TOKEN_VALID_MINUTES = 5
+const MIN_BAHT = 1
+const MAX_BAHT = 500_000
 
 /** สร้างโทเค็นเติมเงิน → บันทึกใน vending_topup_token (รอตู้สแกน) */
 export async function POST(request: NextRequest) {
@@ -17,13 +19,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Authorization required' }, { status: 401 })
     }
 
-    let body: { refresh_token?: string } = {}
+    let body: { refresh_token?: string; amount?: unknown } = {}
     try {
       body = await request.json().catch(() => ({}))
     } catch {
       // no body
     }
     const refreshToken = body.refresh_token ?? ''
+    const amount = Number(body.amount)
+    if (!Number.isFinite(amount) || amount < MIN_BAHT || amount > MAX_BAHT) {
+      return NextResponse.json(
+        { error: `amount must be between ${MIN_BAHT} and ${MAX_BAHT} THB` },
+        { status: 400 }
+      )
+    }
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -67,10 +76,11 @@ export async function POST(request: NextRequest) {
       .from('vending_topup_token')
       .insert({
         user_id: userId,
+        amount,
         expires_at: expiresAt.toISOString(),
         status: 'pending',
       })
-      .select('token, expires_at')
+      .select('token, expires_at, amount')
       .single()
 
     if (error) {
@@ -88,6 +98,9 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({
+      userID: userId,
+      action: 'topup',
+      amount: row.amount,
       token: row.token,
       expiresAt: row.expires_at,
     })

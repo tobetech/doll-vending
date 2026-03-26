@@ -1,19 +1,117 @@
-# ตู้เติมเงิน — เชื่อมกับ Doll Vending
+# เติมเงิน — Ksher PromptPay (หลัก) และตู้เติมเงิน (ทางเลือก)
 
-## Flow
+แอปใช้ **Ksher C-scan-B** สร้าง **PromptPay QR** ในหน้า **เมนู → เติมเงิน** ผู้ใช้สแกนจ่ายจากแอปธนาคาร เมื่อชำระสำเร็จ ระบบบวกยอดเข้า **`vending_member.credit`** กับยอดเดิม และบันทึก **`vending_transactions`** (`machine_id`: `ksher-promptpay`)
 
-1. ลูกค้าเปิดแอป **เมนู → เติมเงิน** → ระบบสร้างแถวใน `vending_topup_token` และแสดง **QR Code**
-2. ข้อมูลใน QR เป็น JSON:
-   ```json
-   { "type": "topup", "token": "uuid" }
-   ```
-3. **ตู้เติมเงิน** สแกน QR แล้วเรียก **Validate** → ได้ `userId` (token เปลี่ยนเป็น `locked`)
-4. ตู้ให้ลูกค้าใส่จำนวนเงิน / รับเงินสด ตามระบบของตู้
-5. เมื่อรายการสำเร็จ ตู้เรียก **Webhook** พร้อม `token`, `userId`, `amount`, `machineId` → ระบบเพิ่ม `credit` ใน `vending_member` และบันทึก `vending_transactions`
+Flow แยกจาก **ตู้เติมเงิน** (สแกน QR ที่แอปแล้วตู้รับเงินสด / ระบบตู้) — ส่วนนั้นยังรองรับผ่าน `vending_topup_token` หากคุณรัน migration และเชื่อมตู้ตามด้านล่าง
 
 ---
 
-## 1) Validate token (หลังสแกน QR)
+## ส่วน A — เติมเงินผ่าน Ksher (PromptPay ในแอป)
+
+### Flow
+
+1. ผู้ใช้ล็อกอิน → **เมนู → เติมเงิน** → กรอกจำนวนเงิน (บาท)
+2. แอปเรียก **`POST /api/vending/ksher/create-order`** → สร้างแถว `ksher_topup_orders` สถานะ `pending` → เรียก Ksher `orderCreate` (`channel: promptpay`) → ได้รูป QR เป็น **base64** ใน field `reserved1` (ส่งกลับเป็น `qrImageBase64`)
+3. ผู้ใช้สแกน QR จ่ายภายในเวลาที่กำหนด
+4. เมื่อจ่ายสำเร็จ:
+   - **Webhook:** Ksher ส่ง **POST** ไป **`/api/webhook/ksher`** → ตรวจลายเซ็นด้วย `checkSignature` → เรียก `completeKsherTopupByMerchantOrderId` (อัปเดต `pending` → `paid`, บวกเครดิต, insert ธุรกรรม)
+   - **สำรอง:** แอป **poll** **`POST /api/vending/ksher/order-status`** → ถ้า Ksher รายงานจ่ายแล้วจะ complete เช่นกัน
+5. แอปฟัง **Realtime** บนตาราง `ksher_topup_orders` และแสดง **ยอดเงินคงเหลือ** ใหม่
+
+### ฐานข้อมูล (Ksher)
+
+รันใน Supabase SQL Editor:
+
+**`supabase/ksher_topup_orders_migration.sql`**
+
+- ตาราง `public.ksher_topup_orders` (`merchant_order_id`, `amount_baht`, `amount_ksher`, `status`, `ksher_instance`, …)
+- RLS: ผู้ใช้อ่านได้เฉพาะแถวของตัวเอง
+- เพิ่มตารางเข้า **supabase_realtime** เพื่ออัปเดต UI เมื่อสถานะเป็น `paid`
+
+### Environment (Ksher)
+
+| ตัวแปร | ความหมาย |
+|--------|----------|
+| `KSHER_HOST` | Base URL ของ Ksher API (ไม่มี trailing slash) |
+| `KSHER_TOKEN` | Token ร้านค้า |
+| `KSHER_WEBHOOK_URL` | **แนะนำ:** URL เต็มของ endpoint ที่ลงทะเบียนใน Ksher dashboard **ต้องเหมือนกับที่ใช้ verify ลายเซ็นในโค้ด** (เช่น `https://your-domain.com/api/webhook/ksher`) |
+| `NEXT_PUBLIC_APP_URL` | ถ้าไม่ตั้ง `KSHER_WEBHOOK_URL` ระบบจะใช้ `{NEXT_PUBLIC_APP_URL}/api/webhook/ksher` แทน |
+
+ถ้าไม่มี URL สำหรับ verify (ทั้งคู่ว่าง) webhook จะ **ข้ามการตรวจลายเซ็น** และ log warning — **ไม่แนะนำใน production**
+
+### API — สร้างออเดอร์ + QR
+
+- **POST** `https://<โดเมน>/api/vending/ksher/create-order`
+- **Headers:** `Authorization: Bearer <access_token>`, `Content-Type: application/json`
+- **Body:**
+  ```json
+  {
+    "amount": 100,
+    "refresh_token": "optional — ใช้เมื่อ access ใกล้หมดอายุ"
+  }
+  ```
+- **ข้อจำกัด:** `amount` เป็นบาท, ช่วงประมาณ **1–500,000** (ตามโค้ดฝั่งเซิร์ฟเวอร์)
+- **Response ตัวอย่าง (200):**
+  ```json
+  {
+    "merchantOrderId": "kstu_xxxxxxxx",
+    "amountBaht": 100,
+    "qrImageBase64": "<base64 ของรูป QR>"
+  }
+  ```
+- ถ้า Ksher ไม่ส่ง `reserved1` จะได้ error `ksher_no_qr` และแถวอาจถูกทำเป็น `failed`
+
+### API — เช็คสถานะ (polling)
+
+- **POST** `https://<โดเมน>/api/vending/ksher/order-status`
+- **Headers:** `Authorization: Bearer <access_token>`
+- **Body:**
+  ```json
+  {
+    "merchantOrderId": "kstu_xxxxxxxx",
+    "refresh_token": "optional"
+  }
+  ```
+- **Response เมื่อจ่ายแล้ว (200):**
+  ```json
+  {
+    "status": "paid",
+    "amountBaht": 100,
+    "newCredit": 350.5,
+    "duplicate": false
+  }
+  ```
+  (`duplicate: true` เมื่อ complete ซ้ำ — idempotent)
+
+### Webhook — Ksher → แอป
+
+- **POST** `https://<โดเมน>/api/webhook/ksher`
+- ลงทะเบียน URL นี้ใน **Ksher dashboard** ให้ตรงกับ **`KSHER_WEBHOOK_URL`** (หรือกับ URL ที่สร้างจาก `NEXT_PUBLIC_APP_URL`)
+- Payload ประมวลผลฝั่งเซิร์ฟเวอร์: ตรวจ `message` / `code` ว่าเป็นสถานะจ่ายสำเร็จ, แยก `merchant_order_id` หรือหาจาก `ksher_instance` ที่ map กับออเดอร์
+
+### ความปลอดภัย (Ksher)
+
+- ใช้ **`checkSignature`** จาก SDK `ksher-pay` กับ URL ที่ตรงกับที่ลงทะเบียน
+- ถ้าลายเซ็นไม่ผ่าน → **401 Invalid signature** — ตรวจสอบว่า URL ใน dashboard กับ `KSHER_WEBHOOK_URL` / `NEXT_PUBLIC_APP_URL` ตรงกันทุกตัวอักษร (รวม scheme และ path)
+
+---
+
+## ส่วน B — ตู้เติมเงิน (สแกน QR ที่แอป → ตู้รับเงิน)
+
+ใช้เมื่อต้องการให้ลูกค้าแสกน QR บนมือถือที่**ตู้เติมเงิน** แล้วตู้เป็นคนรับเงินและแจ้ง webhook (ไม่ผ่าน Ksher)
+
+### Flow
+
+1. ลูกค้าเปิดแอป **เมนู → เติมเงิน** — ถ้าแอปของคุณยังสร้าง QR แบบนี้ได้ ข้อมูลใน QR จะเป็น JSON:
+   ```json
+   { "type": "topup", "token": "uuid" }
+   ```
+   (โปรดตรวจสอบโค้ดปัจจุบันของหน้า topup — **เวอร์ชันหลักของโปรเจกต์นี้ใช้ Ksher แทน QR ตู้นี้บนหน้าเดียวกัน**)
+2. **ตู้เติมเงิน** สแกน QR แล้วเรียก **Validate** → ได้ `userId` (token เปลี่ยนเป็น `locked`)
+3. ตู้ให้ลูกค้าใส่จำนวนเงิน / รับเงินสด ตามระบบของตู้
+4. เมื่อรายการสำเร็จ ตู้เรียก **Webhook** พร้อม `token`, `userId`, `amount`, `machineId` → เพิ่ม `credit` ใน `vending_member` และบันทึก `vending_transactions`
+
+### 1) Validate token (หลังสแกน QR)
 
 - **POST** `https://<โดเมนแอป>/api/vending/topup-validate`
 - **Headers:** `Content-Type: application/json`
@@ -35,9 +133,7 @@
 
 หมายเหตุ: คำขอที่สำเร็จจะเปลี่ยนสถานะ token จาก `pending` → `locked` (ใช้ได้หนึ่งครั้งต่อหนึ่งรายการเติมเงิน)
 
----
-
-## 2) Webhook แจ้งเติมเงินสำเร็จ
+### 2) Webhook แจ้งเติมเงินสำเร็จ (ตู้)
 
 - **POST** `https://<โดเมนแอป>/api/webhook/vending-topup`
 - **Headers:** `Content-Type: application/json`
@@ -74,17 +170,13 @@
 
 **ข้อผิดพลาด:** `409` ถ้ายังไม่ได้ validate หรือ token/user ไม่ตรงกับสถานะ `locked`
 
----
-
-## ฐานข้อมูล
+### ฐานข้อมูล (ตู้เติมเงิน)
 
 รัน SQL: **`supabase/vending_topup_token_migration.sql`** ใน Supabase SQL Editor
 
 ตาราง: `public.vending_topup_token`  
 Real-time: เปิด publication ให้ตารางนี้ (สคริปต์จัดการให้) เพื่อแอปอัปเดตเมื่อเติมเงินสำเร็จ
 
----
-
-## ความปลอดภัย
+### ความปลอดภัย (ตู้)
 
 - Webhook นี้ไม่มีลายเซ็นในตัวอย่าง — ถ้าต้องการให้ตั้ง **secret header** หรือ **IP allowlist** ควรเพิ่มใน API ภายหลัง
