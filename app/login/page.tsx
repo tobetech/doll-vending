@@ -36,6 +36,15 @@ function phoneToVirtualEmail(phoneE164: string): string {
   return `${digits}@phone.local`
 }
 
+function phoneToVirtualEmailCandidates(raw: string): string[] {
+  const out: string[] = []
+  const normalized = normalizePhoneForAuth(raw)
+  if (normalized) out.push(phoneToVirtualEmail(normalized))
+  const rawDigits = raw.replace(/\D/g, '')
+  if (rawDigits) out.push(`${rawDigits}@phone.local`)
+  return Array.from(new Set(out))
+}
+
 export default function LoginPage() {
   const router = useRouter()
   const [mode, setMode] = useState<'signin' | 'signup'>('signin')
@@ -76,22 +85,50 @@ export default function LoginPage() {
       setLoading(false)
       return
     }
-    const authEmail = email || phoneToVirtualEmail(phoneE164)
-
     if (mode === 'signin') {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: authEmail,
-        password,
-      })
-      if (error) {
-        setError(error.message)
-      } else if (data.user) {
-        router.push('/menu')
+      if (email) {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        })
+        if (error) {
+          setError(
+            error.message.toLowerCase().includes('invalid login credentials')
+              ? 'อีเมลหรือรหัสผ่านไม่ถูกต้อง'
+              : error.message
+          )
+        } else if (data.user) {
+          router.push('/menu')
+        } else {
+          setError('เข้าสู่ระบบไม่สำเร็จ กรุณาลองอีกครั้ง')
+        }
       } else {
-        setError('เข้าสู่ระบบไม่สำเร็จ กรุณาลองอีกครั้ง')
+        const candidates = phoneToVirtualEmailCandidates(rawId)
+        let signedIn = false
+        let lastMessage = 'เข้าสู่ระบบไม่สำเร็จ กรุณาลองอีกครั้ง'
+        for (const candidate of candidates) {
+          const { data, error } = await supabase.auth.signInWithPassword({
+            email: candidate,
+            password,
+          })
+          if (!error && data.user) {
+            signedIn = true
+            router.push('/menu')
+            break
+          }
+          lastMessage = error?.message || lastMessage
+        }
+        if (!signedIn) {
+          setError(
+            lastMessage.toLowerCase().includes('invalid login credentials')
+              ? 'เบอร์โทรหรือรหัสผ่านไม่ถูกต้อง หรือยังไม่ได้สมัครสมาชิก'
+              : lastMessage
+          )
+        }
       }
     } else {
       const trimmedName = userName.trim()
+      const authEmail = email || phoneToVirtualEmail(phoneE164)
       const { data, error } = await supabase.auth.signUp({
         email: authEmail,
         password,
