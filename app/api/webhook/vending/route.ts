@@ -4,6 +4,7 @@ import {
   isMissingSupabaseServerEnv,
   nextMisconfiguredWebhook,
 } from '@/lib/supabase-env-error'
+import { isUuidString } from '@/lib/is-uuid'
 import { isMissingCreditAfterColumnError } from '@/lib/vending-transaction-insert'
 const PRICE_PER_UNIT = 10
 
@@ -257,7 +258,9 @@ export async function POST(request: NextRequest) {
       amount: amtRounded,
       status: 'success',
     }
-    if (transactionId) baseInsert.id = transactionId
+    if (transactionId && isUuidString(transactionId)) {
+      baseInsert.id = transactionId.trim()
+    }
 
     let { data: row, error } = await supabase
       .from('vending_transactions')

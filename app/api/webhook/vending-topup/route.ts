@@ -4,6 +4,7 @@ import {
   isMissingSupabaseServerEnv,
   nextMisconfiguredWebhook,
 } from '@/lib/supabase-env-error'
+import { isUuidString } from '@/lib/is-uuid'
 import { isMissingCreditAfterColumnError } from '@/lib/vending-transaction-insert'
 
 type WebhookBody = {
@@ -183,7 +184,9 @@ export async function POST(request: NextRequest) {
       amount,
       status: 'success',
     }
-    if (transactionId) topupBaseInsert.id = transactionId
+    if (transactionId && isUuidString(transactionId)) {
+      topupBaseInsert.id = transactionId.trim()
+    }
 
     let { data: txRow, error: txErr } = await supabase
       .from('vending_transactions')

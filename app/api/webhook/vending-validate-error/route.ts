@@ -4,6 +4,7 @@ import {
   isMissingSupabaseServerEnv,
   nextMisconfiguredWebhook,
 } from '@/lib/supabase-env-error'
+import { isUuidString } from '@/lib/is-uuid'
 
 /**
  * เรียกจากตู้เมื่อ POST /api/vending/validate ไม่สำเร็จ (หลังสแกน QR ซื้อของ)
@@ -82,7 +83,9 @@ export async function POST(request: NextRequest) {
       amount: 0,
       status: 'failed',
     }
-    if (transactionId) baseInsert.id = transactionId
+    if (transactionId && isUuidString(transactionId)) {
+      baseInsert.id = transactionId.trim()
+    }
 
     const { data: row, error: insErr } = await supabase
       .from('vending_transactions')
