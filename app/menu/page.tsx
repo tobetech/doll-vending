@@ -56,6 +56,7 @@ export default function MenuPage() {
       const name =
         (u.user_metadata?.full_name as string) ||
         (u.user_metadata?.name as string) ||
+        u.phone ||
         u.email ||
         ''
       setDisplayName(name)
@@ -93,6 +94,7 @@ export default function MenuPage() {
         credit?: unknown
         point?: unknown
         user_name?: string | null
+        tel_no?: string | null
         email?: string | null
       },
       expectedUserId: string
@@ -107,6 +109,7 @@ export default function MenuPage() {
       setPoints(Number.isFinite(pt) ? pt : 0)
       const un = String(data.user_name ?? '').trim()
       if (un) setDisplayName(un)
+      else if (data.tel_no) setDisplayName(String(data.tel_no))
       else if (data.email) setDisplayName(String(data.email))
     },
     []
@@ -120,7 +123,7 @@ export default function MenuPage() {
       void Promise.resolve(
         supabase
           .from('vending_member')
-          .select('id, credit, point, email, user_name')
+          .select('id, credit, point, tel_no, email, user_name')
           .eq('id', uid)
           .maybeSingle()
       )

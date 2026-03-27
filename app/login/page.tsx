@@ -3,13 +3,38 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { FiMail, FiLock, FiArrowRight, FiUser } from 'react-icons/fi'
+import { FiLock, FiArrowRight, FiUser, FiPhone } from 'react-icons/fi'
 import DisneyBackground from '@/app/components/DisneyBackground'
+
+function normalizePhoneForAuth(raw: string): string {
+  const t = raw.trim()
+  if (!t) return ''
+  const hasPlus = t.startsWith('+')
+  const digits = t.replace(/\D/g, '')
+  if (!digits) return ''
+
+  // รองรับรูปแบบไทยที่พิมพ์ 0xxxxxxxxx -> +66xxxxxxxxx
+  if (!hasPlus && digits.length === 10 && digits.startsWith('0')) {
+    return `+66${digits.slice(1)}`
+  }
+  // รองรับ 66xxxxxxxxx -> +66xxxxxxxxx
+  if (!hasPlus && digits.length === 11 && digits.startsWith('66')) {
+    return `+${digits}`
+  }
+  // ถ้าใส่ + มาอยู่แล้ว เก็บตามรูปแบบ E.164
+  if (hasPlus) return `+${digits}`
+  // fallback: เพิ่ม + ให้เป็น E.164
+  return `+${digits}`
+}
+
+function isValidPhoneE164(phone: string): boolean {
+  return /^\+[1-9]\d{8,14}$/.test(phone)
+}
 
 export default function LoginPage() {
   const router = useRouter()
   const [mode, setMode] = useState<'signin' | 'signup'>('signin')
-  const [email, setEmail] = useState('')
+  const [identifier, setIdentifier] = useState('')
   const [userName, setUserName] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -31,9 +56,24 @@ export default function LoginPage() {
         return
       }
     }
+    const rawId = identifier.trim()
+    const isEmail = rawId.includes('@')
+    const phoneE164 = isEmail ? '' : normalizePhoneForAuth(rawId)
+    const email = isEmail ? rawId : ''
+
+    if (!email && !phoneE164) {
+      setError('กรุณากรอกอีเมลหรือหมายเลขโทรศัพท์')
+      setLoading(false)
+      return
+    }
+    if (!isEmail && !isValidPhoneE164(phoneE164)) {
+      setError('กรุณากรอกหมายเลขโทรศัพท์ให้ถูกต้อง (เช่น +66812345678 หรือ 0812345678)')
+      setLoading(false)
+      return
+    }
     if (mode === 'signin') {
       const { data, error } = await supabase.auth.signInWithPassword({
-        email,
+        ...(email ? { email } : { phone: phoneE164 }),
         password,
       })
       if (error) {
@@ -46,7 +86,7 @@ export default function LoginPage() {
     } else {
       const trimmedName = userName.trim()
       const { data, error } = await supabase.auth.signUp({
-        email,
+        ...(email ? { email } : { phone: phoneE164 }),
         password,
         options: {
           data: {
@@ -61,8 +101,9 @@ export default function LoginPage() {
           const { error: memErr } = await supabase.from('vending_member').upsert(
             {
               id: data.user.id,
-              email: data.user.email ?? email,
+              email: data.user.email ?? (email || `${phoneE164}@phone.local`),
               user_name: trimmedName,
+              tel_no: phoneE164 || '',
             },
             { onConflict: 'id' }
           )
@@ -120,14 +161,16 @@ export default function LoginPage() {
           </div>
         )}
         <div className="mb-4">
-          <label className="text-sm font-medium text-gray-700">อีเมล</label>
+          <label className="text-sm font-medium text-gray-700">อีเมล หรือ หมายเลขโทรศัพท์</label>
           <div className="flex items-center mt-1 bg-bill-pale/80 border border-bill-border rounded-card px-3">
-            <FiMail className="text-bill-primary/70" />
+            <FiPhone className="text-bill-primary/70" />
             <input
-              type="email"
+              type="text"
               className="w-full bg-transparent px-2 py-3 outline-none"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
+              placeholder="example@mail.com หรือ 0812345678"
+              autoComplete="username"
             />
           </div>
         </div>
