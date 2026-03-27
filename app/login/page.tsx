@@ -31,6 +31,11 @@ function isValidPhoneE164(phone: string): boolean {
   return /^\+[1-9]\d{8,14}$/.test(phone)
 }
 
+function phoneToVirtualEmail(phoneE164: string): string {
+  const digits = phoneE164.replace(/\D/g, '')
+  return `${digits}@phone.local`
+}
+
 export default function LoginPage() {
   const router = useRouter()
   const [mode, setMode] = useState<'signin' | 'signup'>('signin')
@@ -59,7 +64,7 @@ export default function LoginPage() {
     const rawId = identifier.trim()
     const isEmail = rawId.includes('@')
     const phoneE164 = isEmail ? '' : normalizePhoneForAuth(rawId)
-    const email = isEmail ? rawId : ''
+    const email = isEmail ? rawId.toLowerCase() : ''
 
     if (!email && !phoneE164) {
       setError('กรุณากรอกอีเมลหรือหมายเลขโทรศัพท์')
@@ -71,9 +76,11 @@ export default function LoginPage() {
       setLoading(false)
       return
     }
+    const authEmail = email || phoneToVirtualEmail(phoneE164)
+
     if (mode === 'signin') {
       const { data, error } = await supabase.auth.signInWithPassword({
-        ...(email ? { email } : { phone: phoneE164 }),
+        email: authEmail,
         password,
       })
       if (error) {
@@ -86,7 +93,7 @@ export default function LoginPage() {
     } else {
       const trimmedName = userName.trim()
       const { data, error } = await supabase.auth.signUp({
-        ...(email ? { email } : { phone: phoneE164 }),
+        email: authEmail,
         password,
         options: {
           data: {
@@ -101,7 +108,7 @@ export default function LoginPage() {
           const { error: memErr } = await supabase.from('vending_member').upsert(
             {
               id: data.user.id,
-              email: data.user.email ?? (email || `${phoneE164}@phone.local`),
+              email: data.user.email ?? authEmail,
               user_name: trimmedName,
               tel_no: phoneE164 || '',
             },
