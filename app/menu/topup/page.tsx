@@ -24,6 +24,7 @@ const MAX_TOPUP_BAHT = 1000
 const STEP_TOPUP_BAHT = 10
 const COUNTDOWN_SECONDS = 300
 const SUCCESS_SHOW_MS = 2800
+const SCAN_TIMEOUT_REDIRECT_MS = 2800
 const POLL_MS = 3000
 
 function roundMoney(n: number): number {
@@ -48,8 +49,10 @@ export default function TopUpPage() {
   const [topupToken, setTopupToken] = useState<string | null>(null)
   const [topupAmount, setTopupAmount] = useState<number | null>(null)
   const [success, setSuccess] = useState<{ amount: number; newCredit: number } | null>(null)
+  const [scanTimeoutNotice, setScanTimeoutNotice] = useState<string | null>(null)
   const [qrPixelSize, setQrPixelSize] = useState(TOPUP_QR_MIN_PX)
   const tokenRef = useRef<string | null>(null)
+  const terminalHandledRef = useRef(false)
 
   useEffect(() => {
     tokenRef.current = topupToken
@@ -127,9 +130,21 @@ export default function TopUpPage() {
 
   const qrValue = qrPayload ? JSON.stringify(qrPayload) : ''
 
+  const applyScanTimeout = useCallback(() => {
+    if (success != null) return
+    if (terminalHandledRef.current) return
+    terminalHandledRef.current = true
+    setScanTimeoutNotice('ไม่ได้ทำรายการภายในเวลาที่กำหนด')
+    setTopupToken(null)
+    setTopupAmount(null)
+    setTimeout(() => router.replace('/menu'), SCAN_TIMEOUT_REDIRECT_MS)
+  }, [router, success])
+
   const applySuccess = useCallback(
     async (amount: number) => {
       if (!user?.id || success) return
+      if (terminalHandledRef.current) return
+      terminalHandledRef.current = true
       await fetchBalance(user.id)
       const { data: mem } = await supabase
         .from('vending_member')
@@ -158,9 +173,14 @@ export default function TopUpPage() {
         },
         (payload) => {
           const row = payload.new as { token?: string; status?: string; amount?: number | string }
-          if (row?.token === tokenRef.current && row?.status === 'completed') {
+          if (row?.token !== tokenRef.current) return
+          if (row?.status === 'completed') {
             const amt = row.amount != null ? Number(row.amount) : Number(topupAmount ?? 0)
             void applySuccess(Number.isFinite(amt) ? amt : 0)
+            return
+          }
+          if (row?.status === 'scan_timeout') {
+            applyScanTimeout()
           }
         }
       )
@@ -168,7 +188,7 @@ export default function TopUpPage() {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [applySuccess, topupAmount, user?.id])
+  }, [applyScanTimeout, applySuccess, topupAmount, user?.id])
 
   const pollTopupStatus = useCallback(async () => {
     const token = tokenRef.current
@@ -181,8 +201,12 @@ export default function TopUpPage() {
     if (data?.status === 'completed') {
       const amt = data.amount != null ? Number(data.amount) : Number(topupAmount ?? 0)
       await applySuccess(Number.isFinite(amt) ? amt : 0)
+      return
     }
-  }, [applySuccess, success, topupAmount])
+    if (data?.status === 'scan_timeout') {
+      applyScanTimeout()
+    }
+  }, [applyScanTimeout, applySuccess, success, topupAmount])
 
   useEffect(() => {
     if (!topupToken || success !== null) return
@@ -193,6 +217,7 @@ export default function TopUpPage() {
 
   const handleCreateQr = async () => {
     if (!user?.id) return
+    terminalHandledRef.current = false
     setCreating(true)
     setCreateError(null)
     setTopupToken(null)
@@ -238,31 +263,7 @@ export default function TopUpPage() {
     )
   }, [])
 
-  const handleCancelTopupQr = async () => {
-    const tok = tokenRef.current
-    const amt = topupAmount
-    if (user?.id && tok) {
-      try {
-        const { session } = await getSessionWithTimeout()
-        if (session?.access_token) {
-          await fetch(`${API_BASE}/api/vending/topup-cancel-notify`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${session.access_token}`,
-            },
-            body: JSON.stringify({
-              refresh_token: session.refresh_token ?? '',
-              token: tok,
-              userId: user.id,
-              amount: amt ?? undefined,
-            }),
-          })
-        }
-      } catch {
-        // ยังปิด QR ต่อแม้แจ้ง n8n ไม่สำเร็จ
-      }
-    }
+  const handleCancelTopupQr = () => {
     setTopupToken(null)
     setTopupAmount(null)
   }
@@ -296,6 +297,15 @@ export default function TopUpPage() {
       <main
         className={`relative mx-auto ${topupToken ? 'w-full max-w-full px-2 py-3 sm:max-w-lg sm:px-4 sm:py-6' : 'max-w-lg px-4 py-6'}`}
       >
+        {scanTimeoutNotice && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+            <div className="bg-white rounded-card shadow-2xl p-8 text-center max-w-xs border border-amber-200">
+              <p className="text-xl font-bold text-amber-900">{scanTimeoutNotice}</p>
+              <p className="text-sm text-gray-600 mt-3">กำลังกลับหน้าเมนู...</p>
+            </div>
+          </div>
+        )}
+
         {success && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
             <div className="bg-white rounded-card shadow-2xl p-8 text-center max-w-xs border border-bill-border">
@@ -450,7 +460,7 @@ export default function TopUpPage() {
 
               <button
                 type="button"
-                onClick={() => void handleCancelTopupQr()}
+                onClick={handleCancelTopupQr}
                 className="w-full touch-manipulation rounded-card border-2 border-bill-border py-4 text-xl font-semibold text-bill-primary hover:bg-bill-pale/60 sm:text-lg"
               >
                 ยกเลิก

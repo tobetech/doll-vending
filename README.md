@@ -46,8 +46,6 @@ npm install
 | `KSHER_HOST` | Host API Ksher (ตามที่ผู้ให้บริการกำหนด เช่น `https://api.ksher.net`) |
 | `KSHER_TOKEN` | Token ร้านค้า Ksher |
 | `KSHER_WEBHOOK_URL` | **แนะนำ:** URL เต็มของ webhook ที่ลงทะเบียนใน Ksher **ต้องตรงทุกตัวอักษร** กับที่ใช้ `checkSignature` — ถ้าใช้ n8n รับก่อน ให้ใส่ URL ของ n8n (ดู docs) |
-| `N8N_TOPUP_CANCEL_WEBHOOK_URL` | (ทางเลือก) Webhook n8n เมื่อผู้ใช้กดยกเลิก QR หน้าเติมเงิน — ดู [`docs/TOPUP_MACHINE_INTEGRATION.md`](docs/TOPUP_MACHINE_INTEGRATION.md) |
-
 ### 4. รันแอป
 
 ```bash
@@ -67,7 +65,6 @@ npm run dev
 | `SUPABASE_SERVICE_ROLE_KEY` | **service_role** (ห้ามเปิดเผย) — ใช้กับ API / webhook |
 | `NEXT_PUBLIC_APP_URL` | URL โดเมนจริงของ deployment |
 | `KSHER_HOST`, `KSHER_TOKEN`, `KSHER_WEBHOOK_URL` | สำหรับเติมเงิน PromptPay |
-| `N8N_TOPUP_CANCEL_WEBHOOK_URL` | (ถ้าใช้) ยกเลิก QR เติมเงิน → n8n |
 
 ถ้าไม่ใส่ `NEXT_PUBLIC_*` ตอน build เคย error `supabaseUrl is required` — โค้ดล่าสุดใช้ placeholder ให้ build ผ่านได้ แต่**แอปจะใช้งาน Supabase ไม่ได้จนกว่าจะใส่ค่าจริงแล้ว build ใหม่**
 
@@ -95,7 +92,6 @@ npm run dev
 |--------|-----|---------|-------------|
 | POST | `/api/vending/ksher/create-order` | `Authorization: Bearer <access>` | `{ "amount": 100, "refresh_token"?: "..." }` |
 | POST | `/api/vending/ksher/order-status` | `Authorization: Bearer <access>` | `{ "merchantOrderId": "kstu_...", "refresh_token"?: "..." }` |
-| POST | `/api/vending/topup-cancel-notify` | `Authorization: Bearer <access>` | `{ "token", "userId", "amount"?, "refresh_token"? }` → ส่งต่อไป n8n ถ้าตั้ง `N8N_TOPUP_CANCEL_WEBHOOK_URL` |
 
 Webhook จาก Ksher → **POST** `/api/webhook/ksher` (ลงทะเบียนใน Ksher ให้ตรง `KSHER_WEBHOOK_URL`)
 
@@ -108,7 +104,6 @@ Webhook จาก Ksher → **POST** `/api/webhook/ksher` (ลงทะเบี
 doll-vending/
 ├── app/
 │   ├── api/vending/validate/       # API ให้ตู้กดยืนยัน user
-│   ├── api/vending/topup-cancel-notify/  # แจ้ง n8n เมื่อยกเลิก QR เติมเงิน
 │   ├── api/vending/ksher/          # สร้างออเดอร์ / เช็คสถานะ Ksher
 │   ├── api/webhook/vending/        # Webhook รับการซื้อจากตู้
 │   ├── api/webhook/ksher/          # Webhook จาก Ksher (เติมเงิน)
