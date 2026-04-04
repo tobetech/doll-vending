@@ -1,9 +1,9 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { FiArrowLeft, FiCreditCard, FiMinus, FiPlus } from 'react-icons/fi'
+import { FiCreditCard, FiMinus, FiPlus } from 'react-icons/fi'
 import { QrcodeSVG } from 'react-qrcode-pretty'
 import DisneyBackground from '@/app/components/DisneyBackground'
 import { supabase } from '@/lib/supabase'
@@ -16,8 +16,9 @@ import {
 } from '@/lib/qr-display'
 
 const API_BASE = typeof window !== 'undefined' ? window.location.origin : ''
-/** QR หน้าเติมเงิน — ใหญ่กว่าหน้า vending เพื่อสแกนง่าย */
-const TOPUP_QR_DISPLAY_SIZE = 380
+/** ขนาดสูงสุดของ QR (px) — บนมือถือจะใช้เกือบเต็มความกว้างจอ */
+const TOPUP_QR_MAX_PX = 420
+const TOPUP_QR_MIN_PX = 220
 const MIN_TOPUP_BAHT = 20
 const MAX_TOPUP_BAHT = 1000
 const STEP_TOPUP_BAHT = 10
@@ -47,11 +48,31 @@ export default function TopUpPage() {
   const [topupToken, setTopupToken] = useState<string | null>(null)
   const [topupAmount, setTopupAmount] = useState<number | null>(null)
   const [success, setSuccess] = useState<{ amount: number; newCredit: number } | null>(null)
+  const [qrPixelSize, setQrPixelSize] = useState(TOPUP_QR_MIN_PX)
   const tokenRef = useRef<string | null>(null)
 
   useEffect(() => {
     tokenRef.current = topupToken
   }, [topupToken])
+
+  const recomputeQrPixelSize = useCallback(() => {
+    if (typeof window === 'undefined') return
+    const w = window.innerWidth
+    const reserve = 28
+    const next = Math.floor(Math.min(TOPUP_QR_MAX_PX, Math.max(TOPUP_QR_MIN_PX, w - reserve)))
+    setQrPixelSize(next)
+  }, [])
+
+  useLayoutEffect(() => {
+    if (!topupToken) return
+    recomputeQrPixelSize()
+    window.addEventListener('orientationchange', recomputeQrPixelSize)
+    window.addEventListener('resize', recomputeQrPixelSize)
+    return () => {
+      window.removeEventListener('orientationchange', recomputeQrPixelSize)
+      window.removeEventListener('resize', recomputeQrPixelSize)
+    }
+  }, [topupToken, recomputeQrPixelSize])
 
   const fetchBalance = useCallback(async (userId: string) => {
     const { data } = await supabase
@@ -217,6 +238,35 @@ export default function TopUpPage() {
     )
   }, [])
 
+  const handleCancelTopupQr = async () => {
+    const tok = tokenRef.current
+    const amt = topupAmount
+    if (user?.id && tok) {
+      try {
+        const { session } = await getSessionWithTimeout()
+        if (session?.access_token) {
+          await fetch(`${API_BASE}/api/vending/topup-cancel-notify`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify({
+              refresh_token: session.refresh_token ?? '',
+              token: tok,
+              userId: user.id,
+              amount: amt ?? undefined,
+            }),
+          })
+        }
+      } catch {
+        // ยังปิด QR ต่อแม้แจ้ง n8n ไม่สำเร็จ
+      }
+    }
+    setTopupToken(null)
+    setTopupAmount(null)
+  }
+
   if (loading || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center relative">
@@ -230,19 +280,22 @@ export default function TopUpPage() {
     <div className="min-h-screen relative bg-white">
       <DisneyBackground />
       <header className="bg-bill-primary text-white shadow-md relative">
-        <div className="max-w-lg mx-auto px-4 py-3 flex items-center gap-3">
-          <Link href="/menu" className="p-2 rounded-lg hover:bg-white/10 text-white">
-            <FiArrowLeft className="w-5 h-5" />
-          </Link>
+        <div
+          className={`mx-auto flex items-center justify-center px-3 py-3 sm:px-4 ${
+            topupToken ? 'max-w-full' : 'max-w-lg'
+          }`}
+        >
           <h1
-            className={`font-bold ${topupToken ? 'text-xl' : 'text-lg'}`}
+            className={`font-bold ${topupToken ? 'text-2xl sm:text-xl' : 'text-lg'}`}
           >
             เติมเงิน
           </h1>
         </div>
       </header>
 
-      <main className="max-w-lg mx-auto px-4 py-6 relative">
+      <main
+        className={`relative mx-auto ${topupToken ? 'w-full max-w-full px-2 py-3 sm:max-w-lg sm:px-4 sm:py-6' : 'max-w-lg px-4 py-6'}`}
+      >
         {success && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
             <div className="bg-white rounded-card shadow-2xl p-8 text-center max-w-xs border border-bill-border">
@@ -262,9 +315,23 @@ export default function TopUpPage() {
           </div>
         )}
 
-        <section className="bg-white rounded-card shadow-card border border-bill-border p-6 space-y-4">
+        <section
+          className={`bg-white space-y-4 ${
+            topupToken
+              ? 'rounded-none border-0 p-3 shadow-none sm:rounded-card sm:border sm:border-bill-border sm:p-6 sm:shadow-card'
+              : 'rounded-card border border-bill-border p-6 shadow-card'
+          }`}
+        >
           {!topupToken ? (
             <>
+              <div className="flex justify-end">
+                <Link
+                  href="/menu"
+                  className="text-sm font-medium text-bill-primary hover:underline"
+                >
+                  ← กลับเมนู
+                </Link>
+              </div>
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-xl bg-bill-pale flex items-center justify-center border border-bill-border">
                   <FiCreditCard className="text-bill-primary w-6 h-6" />
@@ -343,9 +410,9 @@ export default function TopUpPage() {
             </>
           ) : (
             <>
-              <div className="rounded-card border border-bill-border bg-bill-pale/40 px-4 py-3">
-                <p className="text-sm text-gray-600">ยอดเงินคงเหลือ</p>
-                <p className="text-2xl font-bold text-bill-blue tabular-nums">
+              <div className="rounded-card border border-bill-border bg-bill-pale/40 px-4 py-3 sm:py-3">
+                <p className="text-base text-gray-600 font-medium">ยอดเงินคงเหลือ</p>
+                <p className="text-3xl font-bold text-bill-blue tabular-nums sm:text-2xl">
                   {new Intl.NumberFormat('th-TH', {
                     style: 'currency',
                     currency: 'THB',
@@ -354,20 +421,20 @@ export default function TopUpPage() {
               </div>
 
               {countdownSeconds !== null && countdownSeconds > 0 && (
-                <p className="text-center text-xl text-bill-primary font-bold tracking-tight">
+                <p className="text-center text-2xl leading-tight text-bill-primary font-bold tracking-tight sm:text-xl">
                   QR หมดอายุใน {Math.floor(countdownSeconds / 60)}:
                   {String(countdownSeconds % 60).padStart(2, '0')}
                 </p>
               )}
 
-              <div className="w-full flex justify-center px-1 py-2">
+              <div className="flex w-full justify-center py-1">
                 {qrPayload ? (
                   <QrcodeSVG
                     value={qrValue}
-                    size={TOPUP_QR_DISPLAY_SIZE}
+                    size={qrPixelSize}
                     level={APP_QR_ERROR_LEVEL}
-                    margin={8}
-                    padding={8}
+                    margin={6}
+                    padding={6}
                     variant={{ eyes: 'standard', body: 'dots' }}
                     color={APP_QR_COLOR}
                     bgColor={APP_QR_BACKGROUND}
@@ -376,18 +443,15 @@ export default function TopUpPage() {
               </div>
 
               {createError && (
-                <p className="text-base text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 font-medium">
+                <p className="text-lg text-amber-900 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 font-semibold sm:text-base">
                   {createError}
                 </p>
               )}
 
               <button
                 type="button"
-                onClick={() => {
-                  setTopupToken(null)
-                  setTopupAmount(null)
-                }}
-                className="w-full py-4 text-lg font-semibold text-bill-primary border-2 border-bill-border rounded-card hover:bg-bill-pale/60"
+                onClick={() => void handleCancelTopupQr()}
+                className="w-full touch-manipulation rounded-card border-2 border-bill-border py-4 text-xl font-semibold text-bill-primary hover:bg-bill-pale/60 sm:text-lg"
               >
                 ยกเลิก
               </button>
