@@ -45,7 +45,7 @@ npm install
 | `NEXT_PUBLIC_APP_URL` | URL ฐานของแอป (เช่น `https://your-app.vercel.app`) — ใช้ fallback สำหรับ verify webhook Ksher |
 | `KSHER_HOST` | Host API Ksher (ตามที่ผู้ให้บริการกำหนด เช่น `https://api.ksher.net`) |
 | `KSHER_TOKEN` | Token ร้านค้า Ksher |
-| `KSHER_WEBHOOK_URL` | **แนะนำ:** URL เต็มของ webhook ที่ลงทะเบียนใน Ksher **ต้องตรงทุกตัวอักษร** กับที่ใช้ `checkSignature` (ถ้าไม่ตั้ง จะใช้ `NEXT_PUBLIC_APP_URL` + `/api/webhook/ksher`) |
+| `KSHER_WEBHOOK_URL` | **แนะนำ:** URL เต็มของ webhook ที่ลงทะเบียนใน Ksher **ต้องตรงทุกตัวอักษร** กับที่ใช้ `checkSignature` — ถ้าใช้ n8n รับก่อน ให้ใส่ URL ของ n8n (ดู docs) |
 
 ### 4. รันแอป
 

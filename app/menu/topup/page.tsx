@@ -13,17 +13,17 @@ import {
   APP_QR_BACKGROUND,
   APP_QR_COLOR,
   APP_QR_ERROR_LEVEL,
-  APP_QR_SIZE,
 } from '@/lib/qr-display'
 
 const API_BASE = typeof window !== 'undefined' ? window.location.origin : ''
+/** QR หน้าเติมเงิน — ใหญ่กว่าหน้า vending เพื่อสแกนง่าย */
+const TOPUP_QR_DISPLAY_SIZE = 380
 const MIN_TOPUP_BAHT = 20
 const MAX_TOPUP_BAHT = 1000
 const STEP_TOPUP_BAHT = 10
 const COUNTDOWN_SECONDS = 300
 const SUCCESS_SHOW_MS = 2800
 const POLL_MS = 3000
-const IS_DEV = process.env.NODE_ENV === 'development'
 
 function roundMoney(n: number): number {
   return Math.round((n + Number.EPSILON) * 100) / 100
@@ -44,8 +44,6 @@ export default function TopUpPage() {
   const [selectedAmountBaht, setSelectedAmountBaht] = useState(100)
   const [creating, setCreating] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
-  const [testWebhookLoading, setTestWebhookLoading] = useState(false)
-  const [testWebhookError, setTestWebhookError] = useState<string | null>(null)
   const [topupToken, setTopupToken] = useState<string | null>(null)
   const [topupAmount, setTopupAmount] = useState<number | null>(null)
   const [success, setSuccess] = useState<{ amount: number; newCredit: number } | null>(null)
@@ -219,40 +217,6 @@ export default function TopUpPage() {
     )
   }, [])
 
-  const handleTestWebhook = async () => {
-    if (!qrPayload) return
-    setTestWebhookLoading(true)
-    setTestWebhookError(null)
-    try {
-      const res = await fetch(`${API_BASE}/api/webhook/vending-topup`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          token: qrPayload.token,
-          userId: qrPayload.userID,
-          action: qrPayload.action,
-          amount: qrPayload.amount,
-          machineId: 'test-machine',
-          transactionId: `test-${Date.now()}`,
-        }),
-      })
-      const json = await res.json().catch(() => ({}))
-      if (!res.ok) {
-        setTestWebhookError(json.error || `ทดสอบ webhook ไม่สำเร็จ (${res.status})`)
-        return
-      }
-      if (json.duplicate) {
-        setTestWebhookError('รายการนี้เคยเติมสำเร็จแล้ว')
-        return
-      }
-      await applySuccess(qrPayload.amount)
-    } catch {
-      setTestWebhookError('ส่ง webhook ไม่ได้ กรุณาลองใหม่')
-    } finally {
-      setTestWebhookLoading(false)
-    }
-  }
-
   if (loading || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center relative">
@@ -270,7 +234,11 @@ export default function TopUpPage() {
           <Link href="/menu" className="p-2 rounded-lg hover:bg-white/10 text-white">
             <FiArrowLeft className="w-5 h-5" />
           </Link>
-          <h1 className="text-lg font-bold">เติมเงิน</h1>
+          <h1
+            className={`font-bold ${topupToken ? 'text-xl' : 'text-lg'}`}
+          >
+            เติมเงิน
+          </h1>
         </div>
       </header>
 
@@ -295,157 +263,133 @@ export default function TopUpPage() {
         )}
 
         <section className="bg-white rounded-card shadow-card border border-bill-border p-6 space-y-4">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-bill-pale flex items-center justify-center border border-bill-border">
-              <FiCreditCard className="text-bill-primary w-6 h-6" />
-            </div>
-            <div className="flex-1">
-              <h2 className="font-semibold text-gray-800">เติมเงินผ่านตู้ขายสินค้า</h2>
-              <p className="text-sm text-gray-500">
-                เลือกยอด แล้วสร้าง QR ให้ตู้สแกนเพื่อนำไปชำระผ่าน Ksher
-              </p>
-            </div>
-          </div>
-
-          <div className="rounded-card border border-bill-border bg-bill-pale/40 px-4 py-3">
-            <p className="text-xs text-gray-500">ยอดเงินคงเหลือ</p>
-            <p className="text-xl font-bold text-bill-blue tabular-nums">
-              {new Intl.NumberFormat('th-TH', {
-                style: 'currency',
-                currency: 'THB',
-              }).format(balance)}
-            </p>
-          </div>
-
-          {topupToken && (
+          {!topupToken ? (
             <>
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-xl bg-bill-pale flex items-center justify-center border border-bill-border">
+                  <FiCreditCard className="text-bill-primary w-6 h-6" />
+                </div>
+                <div className="flex-1">
+                  <h2 className="font-semibold text-gray-800">เติมเงินผ่านตู้ขายสินค้า</h2>
+                  <p className="text-sm text-gray-500">
+                    เลือกยอด แล้วสร้าง QR ให้ตู้สแกนเพื่อนำไปชำระผ่าน Ksher
+                  </p>
+                </div>
+              </div>
+
+              <div className="rounded-card border border-bill-border bg-bill-pale/40 px-4 py-3">
+                <p className="text-xs text-gray-500">ยอดเงินคงเหลือ</p>
+                <p className="text-xl font-bold text-bill-blue tabular-nums">
+                  {new Intl.NumberFormat('th-TH', {
+                    style: 'currency',
+                    currency: 'THB',
+                  }).format(balance)}
+                </p>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-gray-700 block mb-1">
+                  เลือกจำนวนเงินที่ต้องการเติม (บาท)
+                </label>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => adjustAmount(-STEP_TOPUP_BAHT)}
+                    disabled={selectedAmountBaht <= MIN_TOPUP_BAHT}
+                    className="w-12 h-12 rounded-card border border-bill-border flex items-center justify-center text-bill-primary hover:bg-bill-pale/60 disabled:opacity-50"
+                    aria-label="ลดจำนวนเงิน"
+                  >
+                    <FiMinus className="w-5 h-5" />
+                  </button>
+                  <div className="flex-1 rounded-card border border-bill-border bg-white px-4 py-3 text-center">
+                    <p className="text-xs text-gray-500">จำนวนเงินที่เลือก</p>
+                    <p className="text-xl font-bold text-bill-blue tabular-nums">
+                      {new Intl.NumberFormat('th-TH', {
+                        style: 'currency',
+                        currency: 'THB',
+                      }).format(selectedAmountBaht)}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => adjustAmount(STEP_TOPUP_BAHT)}
+                    disabled={selectedAmountBaht >= MAX_TOPUP_BAHT}
+                    className="w-12 h-12 rounded-card border border-bill-border flex items-center justify-center text-bill-primary hover:bg-bill-pale/60 disabled:opacity-50"
+                    aria-label="เพิ่มจำนวนเงิน"
+                  >
+                    <FiPlus className="w-5 h-5" />
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  เพิ่ม/ลดครั้งละ {STEP_TOPUP_BAHT} บาท (ขั้นต่ำ {MIN_TOPUP_BAHT} สูงสุด{' '}
+                  {MAX_TOPUP_BAHT})
+                </p>
+              </div>
+
+              {createError && (
+                <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                  {createError}
+                </p>
+              )}
+
+              <button
+                type="button"
+                onClick={() => void handleCreateQr()}
+                disabled={creating}
+                className="w-full py-3 bg-bill-primary text-white rounded-card font-semibold border border-bill-blueDark/30 hover:opacity-95 disabled:opacity-50"
+              >
+                {creating ? 'กำลังสร้าง QR...' : 'ตกลง'}
+              </button>
+            </>
+          ) : (
+            <>
+              <div className="rounded-card border border-bill-border bg-bill-pale/40 px-4 py-3">
+                <p className="text-sm text-gray-600">ยอดเงินคงเหลือ</p>
+                <p className="text-2xl font-bold text-bill-blue tabular-nums">
+                  {new Intl.NumberFormat('th-TH', {
+                    style: 'currency',
+                    currency: 'THB',
+                  }).format(balance)}
+                </p>
+              </div>
+
               {countdownSeconds !== null && countdownSeconds > 0 && (
-                <p className="text-center text-sm text-bill-primary font-semibold">
+                <p className="text-center text-xl text-bill-primary font-bold tracking-tight">
                   QR หมดอายุใน {Math.floor(countdownSeconds / 60)}:
                   {String(countdownSeconds % 60).padStart(2, '0')}
                 </p>
               )}
-              <div className="w-full border border-bill-border rounded-card p-4 bg-bill-pale/40 flex justify-center">
+
+              <div className="w-full flex justify-center px-1 py-2">
                 {qrPayload ? (
                   <QrcodeSVG
                     value={qrValue}
-                    size={APP_QR_SIZE}
+                    size={TOPUP_QR_DISPLAY_SIZE}
                     level={APP_QR_ERROR_LEVEL}
-                    margin={6}
-                    padding={6}
+                    margin={8}
+                    padding={8}
                     variant={{ eyes: 'standard', body: 'dots' }}
                     color={APP_QR_COLOR}
                     bgColor={APP_QR_BACKGROUND}
                   />
                 ) : null}
               </div>
-              <div className="text-sm text-gray-600 space-y-1">
-                <p>
-                  userID: <span className="font-semibold">{user.id}</span>
-                </p>
-                <p>
-                  action: <span className="font-semibold">topup</span>
-                </p>
-                <p>
-                  amount:{' '}
-                  <span className="font-semibold">
-                    {new Intl.NumberFormat('th-TH', {
-                      style: 'currency',
-                      currency: 'THB',
-                    }).format(topupAmount ?? 0)}
-                  </span>
-                </p>
-              </div>
-            </>
-          )}
 
-          <div>
-            <label className="text-sm font-medium text-gray-700 block mb-1">
-              เลือกจำนวนเงินที่ต้องการเติม (บาท)
-            </label>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => adjustAmount(-STEP_TOPUP_BAHT)}
-                disabled={
-                  (Boolean(topupToken) && success === null) ||
-                  selectedAmountBaht <= MIN_TOPUP_BAHT
-                }
-                className="w-12 h-12 rounded-card border border-bill-border flex items-center justify-center text-bill-primary hover:bg-bill-pale/60 disabled:opacity-50"
-                aria-label="ลดจำนวนเงิน"
-              >
-                <FiMinus className="w-5 h-5" />
-              </button>
-              <div className="flex-1 rounded-card border border-bill-border bg-white px-4 py-3 text-center">
-                <p className="text-xs text-gray-500">จำนวนเงินที่เลือก</p>
-                <p className="text-xl font-bold text-bill-blue tabular-nums">
-                  {new Intl.NumberFormat('th-TH', {
-                    style: 'currency',
-                    currency: 'THB',
-                  }).format(selectedAmountBaht)}
+              {createError && (
+                <p className="text-base text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 font-medium">
+                  {createError}
                 </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => adjustAmount(STEP_TOPUP_BAHT)}
-                disabled={
-                  (Boolean(topupToken) && success === null) ||
-                  selectedAmountBaht >= MAX_TOPUP_BAHT
-                }
-                className="w-12 h-12 rounded-card border border-bill-border flex items-center justify-center text-bill-primary hover:bg-bill-pale/60 disabled:opacity-50"
-                aria-label="เพิ่มจำนวนเงิน"
-              >
-                <FiPlus className="w-5 h-5" />
-              </button>
-            </div>
-            <p className="text-xs text-gray-500 mt-2">
-              เพิ่ม/ลดครั้งละ {STEP_TOPUP_BAHT} บาท (ขั้นต่ำ {MIN_TOPUP_BAHT} สูงสุด {MAX_TOPUP_BAHT})
-            </p>
-          </div>
-
-          {createError && (
-            <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-              {createError}
-            </p>
-          )}
-
-          {!topupToken ? (
-            <button
-              type="button"
-              onClick={() => void handleCreateQr()}
-              disabled={creating}
-              className="w-full py-3 bg-bill-primary text-white rounded-card font-semibold border border-bill-blueDark/30 hover:opacity-95 disabled:opacity-50"
-            >
-              {creating ? 'กำลังสร้าง QR...' : 'ตกลง'}
-            </button>
-          ) : (
-            <>
-              {IS_DEV && (
-                <>
-                  {testWebhookError && (
-                    <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-                      {testWebhookError}
-                    </p>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => void handleTestWebhook()}
-                    disabled={testWebhookLoading}
-                    className="w-full py-2 text-sm text-white bg-emerald-600 border border-emerald-700 rounded-card hover:opacity-95 disabled:opacity-50"
-                  >
-                    {testWebhookLoading ? 'กำลังทดสอบ...' : 'ทดสอบ webhook (เครื่องจำลอง)'}
-                  </button>
-                </>
               )}
+
               <button
                 type="button"
                 onClick={() => {
                   setTopupToken(null)
                   setTopupAmount(null)
                 }}
-                className="w-full py-2 text-sm text-bill-primary border border-bill-border rounded-card hover:bg-bill-pale/60"
+                className="w-full py-4 text-lg font-semibold text-bill-primary border-2 border-bill-border rounded-card hover:bg-bill-pale/60"
               >
-                ยกเลิก / สร้าง QR ใหม่
+                ยกเลิก
               </button>
             </>
           )}
