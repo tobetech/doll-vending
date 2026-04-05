@@ -128,7 +128,7 @@ export default function ProfilePage() {
           >
             <FiArrowLeft className="w-5 h-5" />
           </Link>
-          <h1 className="text-lg font-bold">แก้ไขข้อมูลส่วนตัว</h1>
+          <h1 className="text-2xl sm:text-xl font-bold">แก้ไขข้อมูลส่วนตัว</h1>
         </div>
       </header>
 
@@ -138,12 +138,12 @@ export default function ProfilePage() {
             <div className="w-12 h-12 rounded-full bg-bill-pale flex items-center justify-center border border-bill-border">
               <FiUser className="text-bill-primary w-6 h-6" />
             </div>
-            <h2 className="font-semibold text-gray-800">ข้อมูลสมาชิก</h2>
+            <h2 className="text-lg font-semibold text-gray-800">ข้อมูลสมาชิก</h2>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="text-sm font-medium text-gray-700 flex items-center gap-2 mb-1">
+              <label className="text-base font-medium text-gray-700 flex items-center gap-2 mb-1">
                 <FiUser className="text-bill-primary w-4 h-4" />
                 ชื่อ (user_name)
               </label>
@@ -151,14 +151,14 @@ export default function ProfilePage() {
                 type="text"
                 value={userName}
                 onChange={(e) => setUserName(e.target.value)}
-                className="w-full px-4 py-3 rounded-card border border-bill-border bg-bill-pale/50 focus:outline-none focus:border-bill-primary focus:ring-1 focus:ring-bill-primary/30"
+                className="w-full px-4 py-3.5 rounded-card border border-bill-border bg-bill-pale/50 text-lg focus:outline-none focus:border-bill-primary focus:ring-1 focus:ring-bill-primary/30"
                 placeholder="ชื่อที่ต้องการแสดง"
                 autoComplete="name"
               />
             </div>
 
             <div>
-              <label className="text-sm font-medium text-gray-700 flex items-center gap-2 mb-1">
+              <label className="text-base font-medium text-gray-700 flex items-center gap-2 mb-1">
                 <FiPhone className="text-bill-primary w-4 h-4" />
                 หมายเลขโทรศัพท์ (tel_no)
               </label>
@@ -166,7 +166,7 @@ export default function ProfilePage() {
                 type="tel"
                 value={telNo}
                 onChange={(e) => setTelNo(e.target.value)}
-                className="w-full px-4 py-3 rounded-card border border-bill-border bg-bill-pale/50 focus:outline-none focus:border-bill-primary focus:ring-1 focus:ring-bill-primary/30"
+                className="w-full px-4 py-3.5 rounded-card border border-bill-border bg-bill-pale/50 text-lg focus:outline-none focus:border-bill-primary focus:ring-1 focus:ring-bill-primary/30"
                 placeholder="เช่น 0812345678"
                 autoComplete="tel"
                 inputMode="tel"
@@ -174,12 +174,12 @@ export default function ProfilePage() {
             </div>
 
             <div>
-              <label className="text-sm font-medium text-gray-700 flex items-center gap-2 mb-1">
+              <label className="text-base font-medium text-gray-700 flex items-center gap-2 mb-1">
                 <FiMail className="text-bill-primary w-4 h-4" />
-                อีเมล <span className="text-xs font-normal text-gray-500">(แสดงผลเท่านั้น)</span>
+                อีเมล <span className="text-sm font-normal text-gray-500">(แสดงผลเท่านั้น)</span>
               </label>
               <div
-                className="w-full px-4 py-3 rounded-card border border-bill-border bg-gray-50 text-gray-700 break-all"
+                className="w-full px-4 py-3.5 rounded-card border border-bill-border bg-gray-50 text-lg text-gray-700 break-all"
                 aria-readonly
               >
                 {email || '—'}
@@ -188,7 +188,7 @@ export default function ProfilePage() {
 
             {message && (
               <p
-                className={`text-sm ${message.type === 'ok' ? 'text-green-600' : 'text-bill-danger'}`}
+                className={`text-base ${message.type === 'ok' ? 'text-green-600' : 'text-bill-danger'}`}
               >
                 {message.text}
               </p>
@@ -197,7 +197,7 @@ export default function ProfilePage() {
             <button
               type="submit"
               disabled={saving}
-              className="w-full py-3 bg-bill-primary text-white rounded-card font-semibold border border-bill-blueDark/30 hover:opacity-95 disabled:opacity-50"
+              className="w-full py-3.5 bg-bill-primary text-white rounded-card text-lg font-semibold border border-bill-blueDark/30 hover:opacity-95 disabled:opacity-50"
             >
               {saving ? 'กำลังบันทึก...' : 'บันทึก'}
             </button>

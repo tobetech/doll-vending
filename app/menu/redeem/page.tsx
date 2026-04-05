@@ -90,7 +90,7 @@ export default function RedeemPage() {
           >
             <FiArrowLeft className="w-5 h-5" />
           </Link>
-          <h1 className="text-lg font-bold">แลกคะแนน</h1>
+          <h1 className="text-2xl sm:text-xl font-bold">แลกคะแนน</h1>
         </div>
       </header>
 
@@ -101,11 +101,11 @@ export default function RedeemPage() {
               <FiGift className="text-bill-primary w-6 h-6" />
             </div>
             <div>
-              <h2 className="font-semibold text-gray-800">คะแนนสะสมของคุณ</h2>
-              <p className="text-2xl font-bold text-bill-gold">{points} คะแนน</p>
+              <h2 className="text-lg font-semibold text-gray-800">คะแนนสะสมของคุณ</h2>
+              <p className="text-3xl sm:text-2xl font-bold text-bill-gold tabular-nums">{points} คะแนน</p>
             </div>
           </div>
-          <p className="text-sm text-gray-600">
+          <p className="text-base text-gray-600">
             หน้านี้ใช้แลกคะแนนสะสมเป็นของรางวัล (กำลังพัฒนา)
           </p>
         </section>

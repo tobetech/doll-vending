@@ -286,9 +286,7 @@ export default function TopUpPage() {
             topupToken ? 'max-w-full' : 'max-w-lg'
           }`}
         >
-          <h1
-            className={`font-bold ${topupToken ? 'text-2xl sm:text-xl' : 'text-lg'}`}
-          >
+          <h1 className="font-bold text-2xl sm:text-xl">
             เติมเงิน
           </h1>
         </div>
@@ -300,8 +298,8 @@ export default function TopUpPage() {
         {scanTimeoutNotice && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
             <div className="bg-white rounded-card shadow-2xl p-8 text-center max-w-xs border border-amber-200">
-              <p className="text-xl font-bold text-amber-900">{scanTimeoutNotice}</p>
-              <p className="text-sm text-gray-600 mt-3">กำลังกลับหน้าเมนู...</p>
+              <p className="text-2xl sm:text-xl font-bold text-amber-900">{scanTimeoutNotice}</p>
+              <p className="text-base text-gray-600 mt-3">กำลังกลับหน้าเมนู...</p>
             </div>
           </div>
         )}
@@ -310,8 +308,8 @@ export default function TopUpPage() {
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
             <div className="bg-white rounded-card shadow-2xl p-8 text-center max-w-xs border border-bill-border">
               <p className="text-2xl font-bold text-bill-primary">เติมเงินสำเร็จ</p>
-              <p className="text-lg text-gray-700 mt-2">+{success.amount.toFixed(2)} บาท</p>
-              <p className="text-sm text-gray-600 mt-3">
+              <p className="text-xl text-gray-700 mt-2">+{success.amount.toFixed(2)} บาท</p>
+              <p className="text-base text-gray-600 mt-3">
                 ยอดเงินคงเหลือ{' '}
                 <span className="font-bold text-bill-blue tabular-nums">
                   {new Intl.NumberFormat('th-TH', {
@@ -320,7 +318,7 @@ export default function TopUpPage() {
                   }).format(success.newCredit)}
                 </span>
               </p>
-              <p className="text-sm text-gray-500 mt-2">กำลังกลับไปหน้าเมนู...</p>
+              <p className="text-base text-gray-500 mt-2">กำลังกลับไปหน้าเมนู...</p>
             </div>
           </div>
         )}
@@ -337,7 +335,7 @@ export default function TopUpPage() {
               <div className="flex justify-end">
                 <Link
                   href="/menu"
-                  className="text-sm font-medium text-bill-primary hover:underline"
+                  className="text-base font-medium text-bill-primary hover:underline"
                 >
                   ← กลับเมนู
                 </Link>
@@ -347,16 +345,16 @@ export default function TopUpPage() {
                   <FiCreditCard className="text-bill-primary w-6 h-6" />
                 </div>
                 <div className="flex-1">
-                  <h2 className="font-semibold text-gray-800">เติมเงินผ่านตู้ขายสินค้า</h2>
-                  <p className="text-sm text-gray-500">
+                  <h2 className="text-lg font-semibold text-gray-800">เติมเงินผ่านตู้ขายสินค้า</h2>
+                  <p className="text-base text-gray-500">
                     เลือกยอด แล้วสร้าง QR ให้ตู้สแกนเพื่อนำไปชำระผ่าน Ksher
                   </p>
                 </div>
               </div>
 
               <div className="rounded-card border border-bill-border bg-bill-pale/40 px-4 py-3">
-                <p className="text-xs text-gray-500">ยอดเงินคงเหลือ</p>
-                <p className="text-xl font-bold text-bill-blue tabular-nums">
+                <p className="text-sm text-gray-500">ยอดเงินคงเหลือ</p>
+                <p className="text-3xl sm:text-2xl font-bold text-bill-blue tabular-nums">
                   {new Intl.NumberFormat('th-TH', {
                     style: 'currency',
                     currency: 'THB',
@@ -365,7 +363,7 @@ export default function TopUpPage() {
               </div>
 
               <div>
-                <label className="text-sm font-medium text-gray-700 block mb-1">
+                <label className="text-base font-medium text-gray-700 block mb-1">
                   เลือกจำนวนเงินที่ต้องการเติม (บาท)
                 </label>
                 <div className="flex items-center gap-2">
@@ -379,8 +377,8 @@ export default function TopUpPage() {
                     <FiMinus className="w-5 h-5" />
                   </button>
                   <div className="flex-1 rounded-card border border-bill-border bg-white px-4 py-3 text-center">
-                    <p className="text-xs text-gray-500">จำนวนเงินที่เลือก</p>
-                    <p className="text-xl font-bold text-bill-blue tabular-nums">
+                    <p className="text-sm text-gray-500">จำนวนเงินที่เลือก</p>
+                    <p className="text-3xl sm:text-2xl font-bold text-bill-blue tabular-nums">
                       {new Intl.NumberFormat('th-TH', {
                         style: 'currency',
                         currency: 'THB',
@@ -397,14 +395,14 @@ export default function TopUpPage() {
                     <FiPlus className="w-5 h-5" />
                   </button>
                 </div>
-                <p className="text-xs text-gray-500 mt-2">
+                <p className="text-sm text-gray-500 mt-2">
                   เพิ่ม/ลดครั้งละ {STEP_TOPUP_BAHT} บาท (ขั้นต่ำ {MIN_TOPUP_BAHT} สูงสุด{' '}
                   {MAX_TOPUP_BAHT})
                 </p>
               </div>
 
               {createError && (
-                <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                <p className="text-base text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
                   {createError}
                 </p>
               )}
@@ -413,7 +411,7 @@ export default function TopUpPage() {
                 type="button"
                 onClick={() => void handleCreateQr()}
                 disabled={creating}
-                className="w-full py-3 bg-bill-primary text-white rounded-card font-semibold border border-bill-blueDark/30 hover:opacity-95 disabled:opacity-50"
+                className="w-full py-4 bg-bill-primary text-white rounded-card text-lg font-semibold border border-bill-blueDark/30 hover:opacity-95 disabled:opacity-50"
               >
                 {creating ? 'กำลังสร้าง QR...' : 'ตกลง'}
               </button>

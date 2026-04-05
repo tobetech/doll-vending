@@ -172,8 +172,8 @@ export default function LoginPage() {
     <div className="min-h-screen flex flex-col items-center px-4 relative overflow-y-auto bg-white">
       <DisneyBackground />
       <div className="w-full max-w-md bg-bill-primary text-white py-4 px-4 text-center shadow-md">
-        <p className="text-lg font-bold">Doll Vending</p>
-        <p className="text-sm text-white/85">เข้าสู่ระบบเพื่อใช้งานแอป</p>
+        <p className="text-2xl sm:text-xl font-bold">Doll Vending</p>
+        <p className="text-base text-white/85">เข้าสู่ระบบเพื่อใช้งานแอป</p>
       </div>
       <div className="flex-1 flex items-start justify-center pt-6 pb-12 w-full max-w-md">
         <div className="bg-white w-full rounded-card shadow-card p-8 border border-bill-border shrink-0">
@@ -182,20 +182,20 @@ export default function LoginPage() {
             <FiArrowRight className="text-bill-primary text-2xl" />
           </div>
         </div>
-        <h2 className="text-2xl font-bold text-center text-bill-primary mb-2">
+        <h2 className="text-3xl sm:text-2xl font-bold text-center text-bill-primary mb-2">
           {mode === 'signin' ? 'เข้าสู่ระบบ' : 'สมัครสมาชิก'}
         </h2>
-        <p className="text-center text-gray-600 mb-6">
+        <p className="text-center text-lg text-gray-600 mb-6">
           กรุณาเข้าสู่ระบบเพื่อซื้อจากตู้กด
         </p>
         {mode === 'signup' && (
           <div className="mb-4">
-            <label className="text-sm font-medium text-gray-700">ชื่อ</label>
+            <label className="text-base font-medium text-gray-700">ชื่อ</label>
             <div className="flex items-center mt-1 bg-bill-pale/80 border border-bill-border rounded-card px-3">
               <FiUser className="text-bill-primary/70 shrink-0" />
               <input
                 type="text"
-                className="w-full bg-transparent px-2 py-3 outline-none"
+                className="w-full bg-transparent px-2 py-3.5 outline-none text-lg"
                 value={userName}
                 onChange={(e) => setUserName(e.target.value)}
                 placeholder="ชื่อที่แสดงในแอป"
@@ -205,12 +205,12 @@ export default function LoginPage() {
           </div>
         )}
         <div className="mb-4">
-          <label className="text-sm font-medium text-gray-700">อีเมล หรือ หมายเลขโทรศัพท์</label>
+          <label className="text-base font-medium text-gray-700">อีเมล หรือ หมายเลขโทรศัพท์</label>
           <div className="flex items-center mt-1 bg-bill-pale/80 border border-bill-border rounded-card px-3">
             <FiPhone className="text-bill-primary/70" />
             <input
               type="text"
-              className="w-full bg-transparent px-2 py-3 outline-none"
+              className="w-full bg-transparent px-2 py-3.5 outline-none text-lg"
               value={identifier}
               onChange={(e) => setIdentifier(e.target.value)}
               placeholder="example@mail.com หรือ 0812345678"
@@ -219,12 +219,12 @@ export default function LoginPage() {
           </div>
         </div>
         <div className="mb-4">
-          <label className="text-sm font-medium text-gray-700">รหัสผ่าน</label>
+          <label className="text-base font-medium text-gray-700">รหัสผ่าน</label>
           <div className="flex items-center mt-1 bg-bill-pale/80 border border-bill-border rounded-card px-3">
             <FiLock className="text-bill-primary/70" />
             <input
               type="password"
-              className="w-full bg-transparent px-2 py-3 outline-none"
+              className="w-full bg-transparent px-2 py-3.5 outline-none text-lg"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
@@ -232,12 +232,12 @@ export default function LoginPage() {
         </div>
         {mode === 'signup' && (
           <div className="mb-4">
-            <label className="text-sm font-medium text-gray-700">ยืนยันรหัสผ่าน</label>
+            <label className="text-base font-medium text-gray-700">ยืนยันรหัสผ่าน</label>
             <div className="flex items-center mt-1 bg-bill-pale/80 border border-bill-border rounded-card px-3">
               <FiLock className="text-bill-primary/70" />
               <input
                 type="password"
-                className="w-full bg-transparent px-2 py-3 outline-none"
+                className="w-full bg-transparent px-2 py-3.5 outline-none text-lg"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
               />
@@ -245,12 +245,12 @@ export default function LoginPage() {
           </div>
         )}
         {error && (
-          <div className="text-center text-bill-danger text-sm mb-4">{error}</div>
+          <div className="text-center text-bill-danger text-base mb-4">{error}</div>
         )}
         <button
           onClick={handleSubmit}
           disabled={loading}
-          className="w-full mt-2 bg-bill-primary text-white py-3 rounded-card font-semibold shadow-md hover:opacity-95 transition border border-bill-blueDark/30"
+          className="w-full mt-2 bg-bill-primary text-white py-3.5 rounded-card text-lg font-semibold shadow-md hover:opacity-95 transition border border-bill-blueDark/30"
         >
           {loading ? 'กำลังดำเนินการ...' : mode === 'signin' ? 'เข้าสู่ระบบ' : 'สมัครสมาชิก'}
         </button>
@@ -261,7 +261,7 @@ export default function LoginPage() {
             if (mode === 'signup') setUserName('')
             setMode(mode === 'signin' ? 'signup' : 'signin')
           }}
-          className="w-full text-center text-sm text-bill-blue font-semibold mt-4"
+          className="w-full text-center text-base text-bill-blue font-semibold mt-4"
         >
           {mode === 'signin' ? 'ยังไม่มีบัญชี? สมัครสมาชิก' : 'มีบัญชีแล้ว? เข้าสู่ระบบ'}
         </button>

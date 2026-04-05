@@ -367,7 +367,7 @@ export default function VendingScanPage() {
           >
             <FiArrowLeft className="w-5 h-5" />
           </Link>
-          <h1 className="text-lg font-bold">สแกน QR Code ซื้อของ</h1>
+          <h1 className="text-2xl sm:text-xl font-bold">สแกน QR Code ซื้อของ</h1>
         </div>
       </header>
 
@@ -380,13 +380,13 @@ export default function VendingScanPage() {
                 webhookResult === 'success' ? 'border-bill-border text-bill-primary' : 'border-red-200 text-red-600'
               }`}
             >
-              <p className="text-2xl font-bold">
+              <p className="text-2xl sm:text-xl font-bold">
                 {webhookResult === 'success'
                   ? 'สำเร็จ'
                   : 'เกิดข้อผิดพลาด (Error)'}
               </p>
               {webhookResult === 'success' && successSummary && (
-                <div className="mt-3 text-left text-sm text-gray-700 space-y-1">
+                <div className="mt-3 text-left text-base text-gray-700 space-y-1">
                   {successSummary.productName ? (
                     <p>
                       <span className="text-gray-500">สินค้า:</span>{' '}
@@ -415,7 +415,7 @@ export default function VendingScanPage() {
                   ) : null}
                 </div>
               )}
-              <p className="text-sm text-gray-500 mt-2">
+              <p className="text-base text-gray-500 mt-2">
                 กำลังกลับไปหน้าเมนู...
               </p>
             </div>
@@ -428,8 +428,8 @@ export default function VendingScanPage() {
               <FiUser className="w-5 h-5" />
             </div>
             <div className="flex-1">
-              <h2 className="font-semibold text-gray-800">QR ประจำตัว (Dynamic)</h2>
-              <p className="text-sm text-gray-500">ยืนยันจำนวนแล้วแสดง QR ที่ตู้กด · ใช้ได้ครั้งเดียว</p>
+              <h2 className="text-lg font-semibold text-gray-800">QR ประจำตัว (Dynamic)</h2>
+              <p className="text-base text-gray-500">ยืนยันจำนวนแล้วแสดง QR ที่ตู้กด · ใช้ได้ครั้งเดียว</p>
             </div>
             <FiShield className="w-5 h-5 text-bill-primary" />
           </div>
@@ -445,7 +445,7 @@ export default function VendingScanPage() {
             {qrTokenLoading ? (
               <div className="flex flex-col items-center gap-2 text-bill-primary">
                 <FiRefreshCw className="w-8 h-8 animate-spin" />
-                <span className="text-sm">กำลังสร้าง QR...</span>
+                <span className="text-base">กำลังสร้าง QR...</span>
               </div>
             ) : qrString ? (
               <div className="relative inline-block p-2 sm:p-3 bg-black rounded-xl shadow-lg">
@@ -467,7 +467,7 @@ export default function VendingScanPage() {
                 >
                   <div className="bg-white border-2 border-black px-3 py-2 shadow-sm">
                     <span
-                      className="text-xs sm:text-sm font-bold tracking-tight uppercase whitespace-nowrap"
+                      className="text-sm sm:text-base font-bold tracking-tight uppercase whitespace-nowrap"
                       style={{ color: APP_QR_BODY_COLOR }}
                     >
                       Doll-Vending
@@ -477,17 +477,17 @@ export default function VendingScanPage() {
               </div>
             ) : (
               <div className="flex flex-col items-center gap-2 text-center px-2">
-                <p className="text-sm text-gray-600">
+                <p className="text-base text-gray-600">
                   เลือกจำนวนสินค้าด้านล่าง แล้วกด <span className="font-semibold text-bill-primary">ยืนยันจำนวนซื้อ</span> เพื่อแสดง QR
                 </p>
                 {qrError ? (
                   <>
-                    <p className="text-sm text-amber-600">{qrError}</p>
+                    <p className="text-base text-amber-600">{qrError}</p>
                     <button
                       type="button"
                       onClick={handleConfirmQuantity}
                       disabled={qrTokenLoading}
-                      className="flex items-center gap-2 px-4 py-2 text-white rounded-card text-sm font-semibold hover:opacity-95 border border-bill-blueDark/40 bg-bill-primary disabled:opacity-50"
+                      className="flex items-center gap-2 px-4 py-3 text-white rounded-card text-base font-semibold hover:opacity-95 border border-bill-blueDark/40 bg-bill-primary disabled:opacity-50"
                     >
                       <FiRefreshCw className="w-4 h-4" /> ลองใหม่
                     </button>
@@ -500,20 +500,20 @@ export default function VendingScanPage() {
           {/* เวลานับถอยหลัง — ใต้ QR */}
           {countdownSeconds !== null && countdownSeconds > 0 && !webhookResult && qrToken && (
             <div className="mb-4 text-center">
-              <p className="text-sm text-gray-600">QR หมดอายุใน</p>
-              <p className="text-2xl font-bold tabular-nums text-bill-primary">
-                {Math.floor(countdownSeconds / 60)}:{(countdownSeconds % 60).toString().padStart(2, '0')}
+              <p className="text-center text-2xl leading-tight text-bill-primary font-bold tracking-tight sm:text-xl tabular-nums">
+                QR หมดอายุใน {Math.floor(countdownSeconds / 60)}:
+                {(countdownSeconds % 60).toString().padStart(2, '0')}
               </p>
-              <p className="text-xs text-gray-500 mt-1">หมดเวลาจะกลับหน้าเมนูอัตโนมัติ</p>
+              <p className="text-sm text-gray-500 mt-2">หมดเวลาจะกลับหน้าเมนูอัตโนมัติ</p>
             </div>
           )}
           {countdownSeconds === 0 && !webhookResult && qrToken && (
-            <p className="mb-4 text-center text-sm text-gray-500">หมดเวลา กำลังกลับหน้าเมนู...</p>
+            <p className="mb-4 text-center text-base text-gray-500">หมดเวลา กำลังกลับหน้าเมนู...</p>
           )}
 
           <div className="rounded-card border border-bill-border bg-bill-pale/50 p-4">
-            <p className="text-sm font-medium text-gray-800">เลือกจำนวนสินค้า</p>
-            <p className="text-xs text-gray-500 mt-0.5">
+            <p className="text-base font-medium text-gray-800">เลือกจำนวนสินค้า</p>
+            <p className="text-sm text-gray-500 mt-0.5">
               ชิ้นละ {PRICE_PER_UNIT} บาท · ขั้นต่ำ {MIN_QUANTITY} ชิ้น · สูงสุดได้ไม่เกิน {maxQuantity} ชิ้น
               (ยอดคงเหลือ{' '}
               {new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(
@@ -533,7 +533,7 @@ export default function VendingScanPage() {
               </button>
               <div className="min-w-[4.5rem] text-center">
                 <p className="text-3xl font-bold tabular-nums text-gray-900">{quantity}</p>
-                <p className="text-xs text-gray-500">ชิ้น</p>
+                <p className="text-sm text-gray-500">ชิ้น</p>
               </div>
               <button
                 type="button"
@@ -545,20 +545,20 @@ export default function VendingScanPage() {
                 <FiPlus className="w-5 h-5" />
               </button>
             </div>
-            <p className="text-center text-sm font-semibold text-bill-blue mt-3">
+            <p className="text-center text-lg font-semibold text-bill-blue mt-3">
               รวม{' '}
               {new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(
                 quantity * PRICE_PER_UNIT
               )}
             </p>
-            <p className="text-xs text-center text-gray-500 mt-1">
+            <p className="text-sm text-center text-gray-500 mt-1">
               เปลี่ยนจำนวนแล้วต้องกดยืนยันอีกครั้งเพื่อสร้าง QR ใหม่
             </p>
             <button
               type="button"
               onClick={handleConfirmQuantity}
               disabled={qrTokenLoading}
-              className="mt-4 w-full py-3 bg-bill-primary text-white rounded-card font-semibold border border-bill-blueDark/30 hover:opacity-95 disabled:opacity-50"
+              className="mt-4 w-full py-4 bg-bill-primary text-white rounded-card text-lg font-semibold border border-bill-blueDark/30 hover:opacity-95 disabled:opacity-50"
             >
               {qrTokenLoading ? 'กำลังสร้าง QR...' : 'ยืนยันจำนวนซื้อและสร้าง QR'}
             </button>
@@ -567,19 +567,19 @@ export default function VendingScanPage() {
           {/* ปุ่มทดสอบ Webhook — แสดงเฉพาะโหมด development */}
           {isDev && user?.id && !webhookResult && (
             <div className="mt-6 pt-4 border-t border-gray-200">
-              <p className="text-xs text-gray-500 mb-2">ทดสอบเมื่อตู้กดส่ง webhook กลับมา</p>
+              <p className="text-sm text-gray-500 mb-2">ทดสอบเมื่อตู้กดส่ง webhook กลับมา</p>
               <button
                 type="button"
                 onClick={handleTestWebhookSuccess}
                 disabled={testWebhookLoading}
-                className="w-full py-2 rounded-xl text-sm font-medium border-2 border-amber-400 bg-amber-50 text-amber-800 hover:bg-amber-100 disabled:opacity-50"
+                className="w-full py-3 rounded-xl text-base font-medium border-2 border-amber-400 bg-amber-50 text-amber-800 hover:bg-amber-100 disabled:opacity-50"
               >
                 {testWebhookLoading ? 'กำลังส่ง...' : 'จำลอง Webhook (ตู้กดทำรายการสำเร็จ)'}
               </button>
               {testWebhookError && (
-                <p className="text-xs text-red-600 mt-2">{testWebhookError}</p>
+                <p className="text-sm text-red-600 mt-2">{testWebhookError}</p>
               )}
-              <p className="text-xs text-gray-400 mt-1">
+              <p className="text-sm text-gray-400 mt-1">
                 User ID: <code className="break-all">{user.id}</code>
               </p>
             </div>

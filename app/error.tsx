@@ -15,12 +15,12 @@ export default function Error({
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center gap-4 px-6 bg-bill-pale text-gray-800">
-      <h1 className="text-xl font-bold text-bill-primary">เกิดข้อผิดพลาด</h1>
-      <p className="text-sm text-center max-w-md">{error.message || 'ไม่สามารถแสดงหน้านี้ได้'}</p>
+      <h1 className="text-2xl sm:text-xl font-bold text-bill-primary">เกิดข้อผิดพลาด</h1>
+      <p className="text-base text-center max-w-md">{error.message || 'ไม่สามารถแสดงหน้านี้ได้'}</p>
       <button
         type="button"
         onClick={() => reset()}
-        className="px-5 py-2.5 bg-bill-primary text-white rounded-card font-semibold shadow-md"
+        className="px-5 py-3 bg-bill-primary text-white rounded-card text-lg font-semibold shadow-md"
       >
         ลองอีกครั้ง
       </button>

@@ -77,31 +77,31 @@ export default function HistoryPage() {
           >
             <FiArrowLeft className="w-5 h-5" />
           </Link>
-          <h1 className="text-lg font-bold">ประวัติการใช้งาน</h1>
+          <h1 className="text-2xl sm:text-xl font-bold">ประวัติการใช้งาน</h1>
         </div>
       </header>
 
       <main className="max-w-lg mx-auto px-4 py-6 relative">
         <div className="bg-white rounded-card shadow-card border border-bill-border overflow-hidden">
           {loading ? (
-            <div className="py-12 text-center text-gray-500">กำลังโหลด...</div>
+            <div className="py-12 text-center text-lg text-gray-500">กำลังโหลด...</div>
           ) : list.length === 0 ? (
-            <div className="py-12 text-center text-gray-500">
+            <div className="py-12 text-center text-lg text-gray-500">
               ยังไม่มีประวัติการใช้งาน
             </div>
           ) : (
             <ul className="divide-y divide-bill-border">
               {list.map((tx) => (
-                <li key={tx.id} className="px-4 py-3 flex justify-between items-center">
-                  <div>
-                    <p className="font-medium text-gray-800">
+                <li key={tx.id} className="px-4 py-4 flex justify-between items-center gap-3">
+                  <div className="min-w-0">
+                    <p className="text-lg font-medium text-gray-800">
                       {tx.product_name || 'สินค้า'}
                     </p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-sm text-gray-500">
                       ตู้ {tx.machine_id} · {formatDate(tx.created_at)}
                     </p>
                   </div>
-                  <span className="font-semibold text-bill-blue">
+                  <span className="text-lg font-semibold text-bill-blue shrink-0 tabular-nums">
                     {formatCurrency(Number(tx.amount))}
                   </span>
                 </li>

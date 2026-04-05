@@ -267,7 +267,7 @@ export default function MenuPage() {
       <DisneyBackground />
       <header className="bg-bill-primary text-white shadow-md relative">
         <div className="max-w-lg mx-auto px-4 py-4">
-          <h1 className="text-xl font-bold tracking-tight">Doll Vending</h1>
+          <h1 className="text-2xl sm:text-xl font-bold tracking-tight">Doll Vending</h1>
         </div>
       </header>
 
@@ -275,8 +275,8 @@ export default function MenuPage() {
         {/* ข้อมูลผู้ใช้ + ยอดเงิน (การ์ด gradient) + คะแนน */}
         <section className="rounded-card shadow-card border border-bill-border overflow-hidden bg-white">
           <div className="bg-bill-pale px-4 py-3 border-b border-bill-border">
-            <p className="text-xs text-gray-500 mb-0.5">ชื่อผู้ใช้ / อีเมล</p>
-            <p className="text-gray-800 font-semibold break-all">{displayName || 'กำลังโหลด...'}</p>
+            <p className="text-sm text-gray-500 mb-0.5">ชื่อผู้ใช้ / อีเมล</p>
+            <p className="text-lg text-gray-800 font-semibold break-all">{displayName || 'กำลังโหลด...'}</p>
           </div>
           <div className="bill-balance-gradient px-5 py-6 relative overflow-hidden">
             <div
@@ -292,26 +292,26 @@ export default function MenuPage() {
                 <FiDollarSign className="w-6 h-6" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm text-white/90 font-medium">ยอดเงินคงเหลือ</p>
-                <p className="text-2xl sm:text-3xl font-bold text-bill-gold mt-1 tabular-nums">
+                <p className="text-base text-white/90 font-medium">ยอดเงินคงเหลือ</p>
+                <p className="text-3xl sm:text-2xl font-bold text-bill-gold mt-1 tabular-nums">
                   {formatCurrency(balance)}
                 </p>
-                <span className="inline-block mt-3 text-xs font-medium text-white/95 bg-white/15 rounded-full px-3 py-1 border border-white/20">
+                <span className="inline-block mt-3 text-sm font-medium text-white/95 bg-white/15 rounded-full px-3 py-1 border border-white/20">
                   คะแนนสะสม {points} แต้ม
                 </span>
               </div>
             </div>
           </div>
           <div className="px-4 py-3 bg-white border-t border-bill-border flex items-center justify-between">
-            <span className="text-sm text-gray-600">คะแนนที่ใช้แลกของรางวัล</span>
-            <span className="text-lg font-bold text-bill-blue">{points}</span>
+            <span className="text-base text-gray-600">คะแนนที่ใช้แลกของรางวัล</span>
+            <span className="text-xl font-bold text-bill-blue">{points}</span>
           </div>
         </section>
 
         {/* เมนู */}
         <section className="space-y-3">
           <div className="mb-1 px-0.5">
-            <h2 className="font-semibold text-gray-800">เมนู</h2>
+            <h2 className="text-lg font-semibold text-gray-800">เมนู</h2>
           </div>
           {menuItems.map((item) => {
             const Icon = item.Icon
@@ -330,10 +330,10 @@ export default function MenuPage() {
                     {Icon ? <Icon className="w-6 h-6" /> : <span>•</span>}
                   </div>
                   <div className="flex-1">
-                    <p className="font-medium text-gray-800">{item.label}</p>
-                    <p className="text-sm text-gray-500">{item.desc}</p>
+                    <p className="text-lg font-medium text-gray-800">{item.label}</p>
+                    <p className="text-base text-gray-500">{item.desc}</p>
                   </div>
-                  <span className="text-bill-blue/50 font-light text-xl">›</span>
+                  <span className="text-bill-blue/50 font-light text-2xl">›</span>
                 </button>
               )
             }
@@ -347,10 +347,10 @@ export default function MenuPage() {
                   {Icon ? <Icon className="w-6 h-6" /> : <span>•</span>}
                 </div>
                 <div className="flex-1">
-                  <p className="font-medium text-gray-800">{item.label}</p>
-                  <p className="text-sm text-gray-500">{item.desc}</p>
+                  <p className="text-lg font-medium text-gray-800">{item.label}</p>
+                  <p className="text-base text-gray-500">{item.desc}</p>
                 </div>
-                <span className="text-bill-blue/50 font-light text-xl">›</span>
+                <span className="text-bill-blue/50 font-light text-2xl">›</span>
               </Link>
             )
           })}
@@ -360,14 +360,14 @@ export default function MenuPage() {
         {showInsufficientPopup && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
             <div className="bg-white rounded-card shadow-2xl p-6 max-w-xs w-full border border-bill-border text-center">
-              <p className="text-gray-800 font-medium">{insufficientPopupText}</p>
+              <p className="text-lg text-gray-800 font-medium">{insufficientPopupText}</p>
               <button
                 type="button"
                 onClick={() => {
                   setShowInsufficientPopup(false)
                   setInsufficientPopupText('จำนวนเงินไม่เพียงพอ กรุณาเติมเงิน')
                 }}
-                className="mt-4 w-full py-3 bg-bill-primary text-white rounded-card font-semibold hover:opacity-95"
+                className="mt-4 w-full py-3.5 bg-bill-primary text-white rounded-card text-lg font-semibold hover:opacity-95"
               >
                 ตกลง
               </button>
@@ -378,9 +378,9 @@ export default function MenuPage() {
         {/* Log out */}
         <button
           onClick={handleLogout}
-          className="w-full flex items-center justify-center gap-2 py-3 rounded-card border border-bill-border text-bill-primary font-medium hover:bg-bill-pale/80 transition bg-white shadow-sm"
+          className="w-full flex items-center justify-center gap-2 py-3.5 rounded-card border border-bill-border text-bill-primary text-lg font-medium hover:bg-bill-pale/80 transition bg-white shadow-sm"
         >
-          {FiLogOut ? <FiLogOut className="w-5 h-5" /> : <span>⎋</span>}
+          {FiLogOut ? <FiLogOut className="w-6 h-6" /> : <span>⎋</span>}
           ออกจากระบบ (Log out)
         </button>
       </main>
